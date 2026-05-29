@@ -20,7 +20,7 @@
     --text-muted: #8a847a;
     --accent: #c8a85a;
     --accent-dim: #7a6435;
-    --white-piece: #f5efe0;
+    --white-piece: #ffffff;
     --black-piece: #1a1510;
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -717,7 +717,7 @@ function renderBoard(){
         piece.className='piece';
         piece.textContent=PIECES[board[sqIdx]]||'';
         piece.style.color=color(board[sqIdx])==='w'?'var(--white-piece)':'var(--black-piece)';
-        piece.style.textShadow=color(board[sqIdx])==='w'?'0 1px 3px rgba(0,0,0,0.5)':'0 1px 3px rgba(255,255,255,0.15)';
+        piece.style.textShadow=color(board[sqIdx])==='w'?'-1px -1px 0 #3a2a10, 1px -1px 0 #3a2a10, -1px 1px 0 #3a2a10, 1px 1px 0 #3a2a10, 0 0 6px rgba(0,0,0,0.8)':'0 0 3px rgba(255,255,255,0.2)';
         sq.appendChild(piece);
       }
       sq.addEventListener('click',()=>handleClick(sqIdx));
@@ -844,7 +844,7 @@ function askPromotion(c){
       btn.className='promo-choice';
       btn.textContent=PIECES[c+p];
       btn.style.color=c==='w'?'var(--white-piece)':'var(--black-piece)';
-      btn.style.textShadow=c==='w'?'0 1px 3px rgba(0,0,0,0.5)':'0 1px 3px rgba(255,255,255,0.15)';
+      btn.style.textShadow=c==='w'?'-1px -1px 0 #3a2a10, 1px -1px 0 #3a2a10, -1px 1px 0 #3a2a10, 1px 1px 0 #3a2a10, 0 0 6px rgba(0,0,0,0.8)':'0 0 3px rgba(255,255,255,0.2)';
       btn.onclick=()=>{ modal.classList.remove('show'); resolve(p); };
       choices.appendChild(btn);
     }
