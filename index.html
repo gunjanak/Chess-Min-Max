@@ -12,10 +12,6 @@
     --border: #1e2d4a;
     --text: #e2e8f0;
     --text-muted: #5a6a8a;
-    --chess-a: #c8a85a;
-    --chess-b: #8b6239;
-    --c4-a: #ff3d5a;
-    --c4-b: #ffd020;
     --accent: #4a7fff;
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -24,191 +20,180 @@
     background: var(--bg);
     background-image:
       radial-gradient(ellipse at 15% 30%, rgba(74,127,255,0.07) 0%, transparent 55%),
-      radial-gradient(ellipse at 85% 70%, rgba(255,61,90,0.05) 0%, transparent 55%);
+      radial-gradient(ellipse at 85% 70%, rgba(255,61,90,0.05) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 90%, rgba(77,255,145,0.04) 0%, transparent 50%);
     color: var(--text);
     font-family: 'IBM Plex Mono', monospace;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-    gap: 48px;
+    padding: 52px 20px 64px;
+    gap: 52px;
   }
 
-  /* Header */
+  /* ── Header ── */
   header { text-align: center; }
   .logo {
     font-family: 'Righteous', cursive;
-    font-size: 3rem;
-    letter-spacing: 0.1em;
+    font-size: 3.2rem;
+    letter-spacing: 0.12em;
     background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    filter: drop-shadow(0 0 30px rgba(74,127,255,0.25));
+    filter: drop-shadow(0 0 32px rgba(74,127,255,0.28));
   }
   .tagline {
-    font-size: 0.65rem;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-top: 8px;
+    font-size: 0.65rem; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--text-muted); margin-top: 10px;
   }
   .algo-badge {
-    display: inline-block;
-    margin-top: 14px;
-    padding: 5px 14px;
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    font-size: 0.6rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--accent);
-    background: rgba(74,127,255,0.06);
+    display: inline-block; margin-top: 16px;
+    padding: 6px 18px;
+    border: 1px solid var(--border); border-radius: 20px;
+    font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--accent); background: rgba(74,127,255,0.06);
   }
 
-  /* Cards */
+  /* ── Cards grid ── */
   .cards {
-    display: flex;
-    gap: 24px;
-    flex-wrap: wrap;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 22px;
+    width: 100%;
+    max-width: 1020px;
   }
 
   .card {
-    width: 280px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 20px;
     overflow: hidden;
     text-decoration: none;
     color: inherit;
-    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-    display: flex;
-    flex-direction: column;
+    display: flex; flex-direction: column;
+    transition: transform 0.22s, box-shadow 0.22s, border-color 0.22s;
   }
-  .card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 24px 60px rgba(0,0,0,0.5);
-  }
-  .card.chess:hover { border-color: var(--chess-a); box-shadow: 0 24px 60px rgba(200,168,90,0.15); }
-  .card.c4:hover    { border-color: var(--c4-a);   box-shadow: 0 24px 60px rgba(255,61,90,0.15); }
+  .card:hover { transform: translateY(-7px); }
 
-  /* Card preview area */
+  .card.chess:hover   { border-color: #c8a85a; box-shadow: 0 24px 60px rgba(200,168,90,0.15); }
+  .card.c4:hover      { border-color: #ff3d5a; box-shadow: 0 24px 60px rgba(255,61,90,0.15); }
+  .card.othello:hover { border-color: #4dff91; box-shadow: 0 24px 60px rgba(77,255,145,0.13); }
+  .card.checkers:hover{ border-color: #e8902a; box-shadow: 0 24px 60px rgba(232,144,42,0.14); }
+
+  /* ── Preview area ── */
   .preview {
-    height: 180px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-  }
-  .chess .preview { background: linear-gradient(145deg, #1a1208 0%, #2a1e0e 100%); }
-  .c4   .preview { background: linear-gradient(145deg, #0d1020 0%, #1a2040 100%); }
-
-  /* Mini chess board */
-  .mini-board {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    width: 120px;
-    height: 120px;
-    border-radius: 6px;
-    overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-    opacity: 0.9;
-  }
-  .mini-sq {
+    height: 170px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.75rem;
+    position: relative; overflow: hidden;
   }
-  .mini-sq.l { background: #c8b596; }
-  .mini-sq.d { background: #8b6239; }
+  .chess   .preview { background: linear-gradient(145deg,#1a1208,#2a1e0e); }
+  .c4      .preview { background: linear-gradient(145deg,#0d1020,#1a2040); }
+  .othello .preview { background: linear-gradient(145deg,#060d08,#0a1a10); }
+  .checkers.preview,
+  .checkers .preview { background: linear-gradient(145deg,#12080a,#1e100c); }
 
-  /* Mini connect four */
-  .mini-c4 {
-    background: #1a2744;
-    border-radius: 8px;
-    padding: 8px;
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 5px;
-    width: 130px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-  }
-  .mini-disc {
-    aspect-ratio: 1;
-    border-radius: 50%;
-  }
-  .mini-disc.e { background: #0d1520; }
-  .mini-disc.r { background: #ff3d5a; box-shadow: 0 0 6px rgba(255,61,90,0.6); }
-  .mini-disc.y { background: #ffd020; box-shadow: 0 0 6px rgba(255,208,32,0.5); }
-
-  /* Glow orbs in preview */
   .orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(40px);
-    opacity: 0.25;
-    pointer-events: none;
+    position: absolute; border-radius: 50%;
+    filter: blur(44px); opacity: 0.22; pointer-events: none;
   }
 
-  /* Card body */
-  .card-body { padding: 20px 22px 24px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
-  .card-title {
-    font-family: 'Righteous', cursive;
-    font-size: 1.4rem;
-    letter-spacing: 0.06em;
+  /* Mini chess */
+  .mini-board {
+    display: grid; grid-template-columns: repeat(8,1fr);
+    width: 116px; height: 116px;
+    border-radius: 6px; overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.65); opacity: 0.92;
   }
-  .chess .card-title { color: var(--chess-a); }
-  .c4   .card-title { color: var(--c4-a); }
+  .mini-sq { display:flex; align-items:center; justify-content:center; font-size:0.72rem; }
+  .mini-sq.l { background:#c8b596; }
+  .mini-sq.d { background:#8b6239; }
 
-  .card-desc {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    line-height: 1.7;
-    flex: 1;
+  /* Mini Connect Four */
+  .mini-c4 {
+    background: #1a2744; border-radius: 8px; padding: 7px;
+    display: grid; grid-template-columns: repeat(7,1fr); gap: 4px;
+    width: 126px; box-shadow: 0 8px 28px rgba(0,0,0,0.65);
   }
+  .mini-disc { aspect-ratio:1; border-radius:50%; }
+  .mini-disc.e { background:#0d1520; }
+  .mini-disc.r { background:#ff3d5a; box-shadow:0 0 5px rgba(255,61,90,0.55); }
+  .mini-disc.y { background:#ffd020; box-shadow:0 0 5px rgba(255,208,32,0.5); }
 
-  .card-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  /* Mini Othello */
+  .mini-othello {
+    display: grid; grid-template-columns: repeat(8,1fr);
+    gap: 2px; background: #1d8a48;
+    width: 116px; height: 116px;
+    border-radius: 6px; overflow: hidden; padding: 2px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.65);
+  }
+  .mini-othello-sq {
+    background: #0f5c2e;
+    display:flex; align-items:center; justify-content:center;
+    border-radius: 1px;
+  }
+  .mini-o-disc {
+    width:72%; height:72%; border-radius:50%;
+  }
+  .mini-o-disc.b { background:radial-gradient(circle at 35% 30%,#444,#111); box-shadow:0 1px 4px rgba(0,0,0,0.7); }
+  .mini-o-disc.w { background:radial-gradient(circle at 35% 30%,#fff,#ccc); box-shadow:0 1px 4px rgba(0,0,0,0.4); }
+
+  /* Mini Checkers */
+  .mini-checkers {
+    display: grid; grid-template-columns: repeat(8,1fr);
+    width: 116px; height: 116px;
+    border-radius: 6px; overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.65); opacity:0.92;
+  }
+  .mini-csq { display:flex; align-items:center; justify-content:center; }
+  .mini-csq.cl { background:#e8c89a; }
+  .mini-csq.cd { background:#7a3a1e; }
+  .mini-cp {
+    width:68%; height:68%; border-radius:50%;
+  }
+  .mini-cp.r { background:radial-gradient(circle at 35% 30%,#ee5544,#881111); box-shadow:0 2px 6px rgba(204,34,34,0.6); }
+  .mini-cp.w { background:radial-gradient(circle at 35% 30%,#fff,#b0ada4); box-shadow:0 2px 6px rgba(200,200,200,0.4); }
+
+  /* ── Card body ── */
+  .card-body { padding: 18px 20px 22px; flex:1; display:flex; flex-direction:column; gap:9px; }
+  .card-title { font-family:'Righteous',cursive; font-size:1.35rem; letter-spacing:0.06em; }
+  .chess    .card-title { color:#c8a85a; }
+  .c4       .card-title { color:#ff3d5a; }
+  .othello  .card-title { color:#4dff91; }
+  .checkers .card-title { color:#e8902a; }
+
+  .card-desc { font-size:0.68rem; color:var(--text-muted); line-height:1.75; flex:1; }
+
+  .card-tags { display:flex; gap:5px; flex-wrap:wrap; margin-top:2px; }
   .tag {
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    padding: 3px 9px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    color: var(--text-muted);
+    font-size:0.56rem; letter-spacing:0.1em; text-transform:uppercase;
+    padding:3px 8px; border-radius:20px;
+    border:1px solid var(--border); color:var(--text-muted);
   }
-  .chess .tag.hl { border-color: var(--chess-b); color: var(--chess-a); background: rgba(200,168,90,0.07); }
-  .c4   .tag.hl { border-color: var(--c4-a);   color: var(--c4-a);   background: rgba(255,61,90,0.07); }
+  .chess    .tag.hl { border-color:#7a6435; color:#c8a85a; background:rgba(200,168,90,0.07); }
+  .c4       .tag.hl { border-color:#c02040; color:#ff3d5a; background:rgba(255,61,90,0.07); }
+  .othello  .tag.hl { border-color:#1a5c35; color:#4dff91; background:rgba(77,255,145,0.07); }
+  .checkers .tag.hl { border-color:#7a4010; color:#e8902a; background:rgba(232,144,42,0.07); }
 
   .play-btn {
-    margin-top: 14px;
-    padding: 11px;
-    border-radius: 10px;
-    border: none;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.7rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: filter 0.15s, transform 0.1s;
-    text-align: center;
-    display: block;
-    text-decoration: none;
+    margin-top:12px; padding:11px; border-radius:10px; border:none;
+    font-family:'IBM Plex Mono',monospace; font-size:0.68rem;
+    letter-spacing:0.14em; text-transform:uppercase;
+    cursor:pointer; text-align:center; display:block; text-decoration:none;
+    transition:filter 0.15s, transform 0.12s; font-weight:500;
   }
-  .play-btn:hover { filter: brightness(1.1); transform: scale(1.02); }
-  .chess .play-btn { background: linear-gradient(135deg, var(--chess-b), var(--chess-a)); color: #1a1208; font-weight: 500; }
-  .c4   .play-btn { background: linear-gradient(135deg, var(--c4-a), var(--c4-b));   color: #0d0a00; font-weight: 500; }
+  .play-btn:hover { filter:brightness(1.12); transform:scale(1.02); }
+  .chess    .play-btn { background:linear-gradient(135deg,#8b6239,#c8a85a); color:#1a1208; }
+  .c4       .play-btn { background:linear-gradient(135deg,#ff3d5a,#ffd020); color:#0d0a00; }
+  .othello  .play-btn { background:linear-gradient(135deg,#1a7a40,#4dff91); color:#030d06; }
+  .checkers .play-btn { background:linear-gradient(135deg,#8b3010,#e8902a); color:#120408; }
 
-  /* Footer */
+  /* ── Footer ── */
   footer {
-    font-size: 0.6rem;
-    color: var(--text-muted);
-    letter-spacing: 0.1em;
-    text-align: center;
-    opacity: 0.6;
+    font-size:0.6rem; color:var(--text-muted);
+    letter-spacing:0.1em; text-align:center; opacity:0.55;
   }
 </style>
 </head>
@@ -216,7 +201,7 @@
 
 <header>
   <div class="logo">Arcade</div>
-  <p class="tagline">Two-player strategy games vs AI</p>
+  <p class="tagline">Four classic strategy games vs AI</p>
   <span class="algo-badge">Powered by Minimax + Alpha-Beta Pruning</span>
 </header>
 
@@ -225,7 +210,7 @@
   <!-- Chess -->
   <a class="card chess" href="chess_minimax.html">
     <div class="preview">
-      <div class="orb" style="width:120px;height:120px;background:#c8a85a;top:-20px;right:-20px;"></div>
+      <div class="orb" style="width:110px;height:110px;background:#c8a85a;top:-18px;right:-18px;"></div>
       <div class="mini-board" id="mini-chess"></div>
     </div>
     <div class="card-body">
@@ -244,7 +229,7 @@
   <!-- Connect Four -->
   <a class="card c4" href="connect_four.html">
     <div class="preview">
-      <div class="orb" style="width:120px;height:120px;background:#ff3d5a;bottom:-20px;left:-20px;"></div>
+      <div class="orb" style="width:110px;height:110px;background:#ff3d5a;bottom:-18px;left:-18px;"></div>
       <div class="mini-c4" id="mini-c4"></div>
     </div>
     <div class="card-body">
@@ -254,9 +239,47 @@
         <span class="tag hl">Minimax</span>
         <span class="tag hl">Alpha-Beta</span>
         <span class="tag">Depth 1–8</span>
-        <span class="tag">7 × 6 grid</span>
+        <span class="tag">7×6 grid</span>
       </div>
       <span class="play-btn">Play Connect Four →</span>
+    </div>
+  </a>
+
+  <!-- Othello -->
+  <a class="card othello" href="othello.html">
+    <div class="preview">
+      <div class="orb" style="width:110px;height:110px;background:#4dff91;top:-18px;left:-18px;"></div>
+      <div class="mini-othello" id="mini-othello"></div>
+    </div>
+    <div class="card-body">
+      <div class="card-title">Othello</div>
+      <p class="card-desc">Flip your opponent's discs to dominate the board. AI weighs corners heavily and maximises mobility at every turn.</p>
+      <div class="card-tags">
+        <span class="tag hl">Minimax</span>
+        <span class="tag hl">Alpha-Beta</span>
+        <span class="tag">Depth 1–8</span>
+        <span class="tag">8×8 board</span>
+      </div>
+      <span class="play-btn">Play Othello →</span>
+    </div>
+  </a>
+
+  <!-- Checkers -->
+  <a class="card checkers" href="checkers.html">
+    <div class="preview">
+      <div class="orb" style="width:110px;height:110px;background:#e8902a;bottom:-18px;right:-18px;"></div>
+      <div class="mini-checkers" id="mini-checkers"></div>
+    </div>
+    <div class="card-body">
+      <div class="card-title">Checkers</div>
+      <p class="card-desc">Classic diagonal capture game with mandatory jumps and kings. AI chains multi-jumps and controls key board squares.</p>
+      <div class="card-tags">
+        <span class="tag hl">Minimax</span>
+        <span class="tag hl">Alpha-Beta</span>
+        <span class="tag">Depth 1–10</span>
+        <span class="tag">8×8 board</span>
+      </div>
+      <span class="play-btn">Play Checkers →</span>
     </div>
   </a>
 
@@ -265,28 +288,28 @@
 <footer>All games run entirely in your browser — no server, no data collected.</footer>
 
 <script>
-// Mini chess board
-const pieces = {
+// ── Mini Chess ────────────────────────────────────────────────────
+const chessPieces = {
   0:'♜',1:'♞',2:'♝',3:'♛',4:'♚',5:'♝',6:'♞',7:'♜',
   8:'♟',9:'♟',10:'♟',11:'♟',12:'♟',13:'♟',14:'♟',15:'♟',
   48:'♙',49:'♙',50:'♙',51:'♙',52:'♙',53:'♙',54:'♙',55:'♙',
   56:'♖',57:'♘',58:'♗',59:'♕',60:'♔',61:'♗',62:'♘',63:'♖'
 };
-const miniChess = document.getElementById('mini-chess');
+const mc=document.getElementById('mini-chess');
 for(let i=0;i<64;i++){
-  const sq = document.createElement('div');
-  const r=Math.floor(i/8), c=i%8;
-  sq.className = 'mini-sq ' + ((r+c)%2===0?'l':'d');
-  if(pieces[i]){
-    sq.textContent = pieces[i];
-    sq.style.color = i<16 ? '#1a1510' : '#fff';
-    sq.style.textShadow = i>=48 ? '-0.5px -0.5px 0 #3a2a10, 0.5px 0.5px 0 #3a2a10' : '';
+  const sq=document.createElement('div');
+  const r=Math.floor(i/8),c=i%8;
+  sq.className='mini-sq '+((r+c)%2===0?'l':'d');
+  if(chessPieces[i]){
+    sq.textContent=chessPieces[i];
+    sq.style.color=i<16?'#1a1510':'#fff';
+    if(i>=48) sq.style.textShadow='-0.5px -0.5px 0 #3a2a10,0.5px 0.5px 0 #3a2a10';
   }
-  miniChess.appendChild(sq);
+  mc.appendChild(sq);
 }
 
-// Mini connect four (a sample mid-game position)
-const c4State = [
+// ── Mini Connect Four ─────────────────────────────────────────────
+const c4State=[
   [0,0,0,0,0,0,0],
   [0,0,0,0,0,0,0],
   [0,0,0,2,0,0,0],
@@ -294,13 +317,54 @@ const c4State = [
   [0,1,2,2,0,0,0],
   [1,2,1,2,2,0,0],
 ];
-const miniC4 = document.getElementById('mini-c4');
-for(let r=0;r<6;r++){
-  for(let c=0;c<7;c++){
-    const d = document.createElement('div');
-    d.className = 'mini-disc ' + ['e','r','y'][c4State[r][c]];
-    miniC4.appendChild(d);
+const mc4=document.getElementById('mini-c4');
+for(let r=0;r<6;r++) for(let c=0;c<7;c++){
+  const d=document.createElement('div');
+  d.className='mini-disc '+['e','r','y'][c4State[r][c]];
+  mc4.appendChild(d);
+}
+
+// ── Mini Othello ──────────────────────────────────────────────────
+const othelloState=[
+  [0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0],
+  [0,0,0,2,1,0,0,0],
+  [0,0,2,2,2,1,0,0],
+  [0,0,1,2,1,1,0,0],
+  [0,0,0,1,2,0,0,0],
+  [0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0],
+];
+const mo=document.getElementById('mini-othello');
+for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+  const sq=document.createElement('div');
+  sq.className='mini-othello-sq';
+  const v=othelloState[r][c];
+  if(v){
+    const d=document.createElement('div');
+    d.className='mini-o-disc '+(v===1?'b':'w');
+    sq.appendChild(d);
   }
+  mo.appendChild(sq);
+}
+
+// ── Mini Checkers ─────────────────────────────────────────────────
+const mck=document.getElementById('mini-checkers');
+for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+  const sq=document.createElement('div');
+  const light=(r+c)%2===0;
+  sq.className='mini-csq '+(light?'cl':'cd');
+  if(!light){
+    let piece=null;
+    if(r<3) piece='w';
+    else if(r>4) piece='r';
+    if(piece){
+      const p=document.createElement('div');
+      p.className='mini-cp '+piece;
+      sq.appendChild(p);
+    }
+  }
+  mck.appendChild(sq);
 }
 </script>
 </body>

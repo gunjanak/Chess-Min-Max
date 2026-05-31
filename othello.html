@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Othello — Minimax AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060d08;
+    --surface: #0c150e;
+    --board-bg: #0f5c2e;
+    --board-dark: #0a4a24;
+    --board-border: #1a7a40;
+    --board-line: #1d8a48;
+    --cell-hover: rgba(255,255,255,0.08);
+    --black-disc: #111111;
+    --black-shine: rgba(255,255,255,0.18);
+    --white-disc: #f0ede6;
+    --white-shine: rgba(255,255,255,0.7);
+    --hint: rgba(255,255,255,0.15);
+    --hint-border: rgba(255,255,255,0.3);
+    --text: #d8e8d0;
+    --text-muted: #4a6650;
+    --accent: #4dff91;
+    --accent-dim: #1a5c35;
+    --gold: #e8c84a;
+    --flip-dur: 0.4s;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 50% 0%, rgba(15,92,46,0.25) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, rgba(77,255,145,0.04) 0%, transparent 50%);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 16px 48px;
+    gap: 18px;
+  }
+
+  header { text-align: center; }
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+    filter: drop-shadow(0 0 24px rgba(77,255,145,0.3));
+  }
+  .subtitle {
+    font-size: 0.6rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* Score bar */
+  .scorebar {
+    display: flex;
+    width: 100%;
+    max-width: 500px;
+    background: var(--surface);
+    border: 1px solid #1a2e1e;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .score-half {
+    flex: 1;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: background 0.3s;
+  }
+  .score-half.active { background: rgba(77,255,145,0.05); }
+  .score-half:first-child { border-right: 1px solid #1a2e1e; }
+  .disc-icon {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: transform 0.3s;
+  }
+  .disc-icon.black {
+    background: radial-gradient(circle at 35% 35%, #444, #111);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.8), inset 0 1px 2px rgba(255,255,255,0.1);
+  }
+  .disc-icon.white {
+    background: radial-gradient(circle at 35% 35%, #fff, #ccc);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.8);
+  }
+  .score-half.active .disc-icon { transform: scale(1.1); }
+  .score-info { flex: 1; }
+  .score-name { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); }
+  .score-count { font-size: 1.6rem; font-weight: 500; color: var(--text); line-height: 1.1; }
+  .score-wins { font-size: 0.58rem; color: var(--text-muted); }
+  .turn-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.3s;
+    box-shadow: 0 0 8px var(--accent);
+    animation: glow 1s ease-in-out infinite;
+  }
+  @keyframes glow { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  .score-half.active .turn-dot { opacity: 1; }
+
+  /* Board container */
+  .board-outer {
+    background: var(--board-dark);
+    border: 3px solid var(--board-border);
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow:
+      0 0 0 1px rgba(77,255,145,0.08),
+      0 30px 80px rgba(0,0,0,0.7),
+      inset 0 1px 0 rgba(255,255,255,0.04);
+    width: 100%;
+    max-width: 500px;
+  }
+  #board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 2px;
+    background: var(--board-line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .cell {
+    aspect-ratio: 1;
+    background: var(--board-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.15s;
+  }
+  .cell:hover { background: color-mix(in srgb, var(--board-bg) 80%, white 20%); }
+  .cell.valid-move { cursor: pointer; }
+  .cell.valid-move::after {
+    content: '';
+    width: 28%;
+    height: 28%;
+    border-radius: 50%;
+    background: var(--hint);
+    border: 1px solid var(--hint-border);
+    pointer-events: none;
+  }
+
+  /* Disc */
+  .disc {
+    width: 78%;
+    height: 78%;
+    border-radius: 50%;
+    position: absolute;
+    transform-style: preserve-3d;
+    transition: transform var(--flip-dur) ease-in-out;
+  }
+  .disc.black { transform: rotateY(0deg); }
+  .disc.white { transform: rotateY(180deg); }
+  .disc-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    backface-visibility: hidden;
+  }
+  .disc-front {
+    background: radial-gradient(circle at 35% 30%, #4a4a4a, #111 70%);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.8), inset 0 1px 3px rgba(255,255,255,0.12);
+  }
+  .disc-front::after {
+    content: '';
+    position: absolute;
+    top: 10%; left: 18%;
+    width: 28%; height: 18%;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.14);
+  }
+  .disc-back {
+    background: radial-gradient(circle at 35% 30%, #ffffff, #d0cdc6 70%);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.9);
+    transform: rotateY(180deg);
+  }
+  .disc-back::after {
+    content: '';
+    position: absolute;
+    top: 10%; left: 18%;
+    width: 28%; height: 18%;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.6);
+  }
+  .disc.placing {
+    animation: placeDisc 0.25s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  }
+  @keyframes placeDisc {
+    from { transform: scale(0) rotateY(0deg); }
+    to   { transform: scale(1) rotateY(0deg); }
+  }
+  .disc.flipping-to-white { animation: flipToWhite var(--flip-dur) ease-in-out forwards; }
+  .disc.flipping-to-black { animation: flipToBlack var(--flip-dur) ease-in-out forwards; }
+  @keyframes flipToWhite {
+    0%   { transform: rotateY(0deg); }
+    100% { transform: rotateY(180deg); }
+  }
+  @keyframes flipToBlack {
+    0%   { transform: rotateY(180deg); }
+    100% { transform: rotateY(360deg); }
+  }
+
+  /* Status */
+  .status-bar {
+    width: 100%; max-width: 500px;
+    background: var(--surface);
+    border: 1px solid #1a2e1e;
+    border-radius: 10px;
+    padding: 11px 18px;
+    font-size: 0.78rem;
+    color: var(--text);
+    text-align: center;
+    min-height: 42px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .status-bar.thinking { color: var(--accent); animation: glow 0.8s ease-in-out infinite; }
+  .status-bar.win      { color: var(--gold); }
+  .status-bar.lose     { color: #ff6060; }
+  .status-bar.draw     { color: var(--text-muted); }
+
+  /* Controls */
+  .controls {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    width: 100%; max-width: 500px;
+  }
+  .ctrl-group {
+    flex: 1; min-width: 130px;
+    background: var(--surface);
+    border: 1px solid #1a2e1e;
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .ctrl-label {
+    font-size: 0.58rem; text-transform: uppercase;
+    letter-spacing: 0.15em; color: var(--text-muted); margin-bottom: 7px;
+  }
+  select, input[type=range] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid #1a2e1e;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    padding: 6px 8px;
+    border-radius: 6px;
+    outline: none;
+    appearance: none;
+  }
+  input[type=range] { padding: 2px 0; accent-color: var(--accent); }
+  .depth-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .depth-val { font-size: 0.72rem; color: var(--accent); }
+
+  .btn {
+    flex: 1; min-width: 110px;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid var(--accent-dim);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:hover { background: rgba(77,255,145,0.08); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Othello</h1>
+  <p class="subtitle">Minimax AI — Alpha-Beta Pruning</p>
+</header>
+
+<div class="scorebar">
+  <div class="score-half" id="sh-human">
+    <div class="disc-icon black" id="di-human"></div>
+    <div class="score-info">
+      <div class="score-name">You</div>
+      <div class="score-count" id="sc-human">2</div>
+      <div class="score-wins" id="sw-human">0 wins</div>
+    </div>
+    <div class="turn-dot"></div>
+  </div>
+  <div class="score-half" id="sh-ai">
+    <div class="disc-icon white" id="di-ai"></div>
+    <div class="score-info">
+      <div class="score-name">AI</div>
+      <div class="score-count" id="sc-ai">2</div>
+      <div class="score-wins" id="sw-ai">0 wins</div>
+    </div>
+    <div class="turn-dot"></div>
+  </div>
+</div>
+
+<div class="board-outer">
+  <div id="board"></div>
+</div>
+
+<div class="status-bar" id="status">Your turn — place a black disc</div>
+
+<div class="controls">
+  <div class="ctrl-group">
+    <div class="ctrl-label">AI Depth</div>
+    <div class="depth-row">
+      <span style="font-size:0.6rem;color:var(--text-muted)">Easy</span>
+      <span class="depth-val" id="depth-label">5</span>
+      <span style="font-size:0.6rem;color:var(--text-muted)">Hard</span>
+    </div>
+    <input type="range" min="1" max="8" value="5" id="depth-sel"
+           oninput="document.getElementById('depth-label').textContent=this.value">
+  </div>
+  <div class="ctrl-group">
+    <div class="ctrl-label">Play as</div>
+    <select id="side-sel" onchange="newGame()">
+      <option value="B">Black (first)</option>
+      <option value="W">White (second)</option>
+    </select>
+  </div>
+  <button class="btn" onclick="newGame()">New Game</button>
+</div>
+
+<script>
+const B='B', W='W', EMPTY=null;
+const SIZE=8;
+const DIRS=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+
+// Positional weights (Othello PST — corners are supreme)
+const WEIGHTS=[
+  [120,-20, 20,  5,  5, 20,-20,120],
+  [-20,-40, -5, -5, -5, -5,-40,-20],
+  [ 20, -5, 15,  3,  3, 15, -5, 20],
+  [  5, -5,  3,  3,  3,  3, -5,  5],
+  [  5, -5,  3,  3,  3,  3, -5,  5],
+  [ 20, -5, 15,  3,  3, 15, -5, 20],
+  [-20,-40, -5, -5, -5, -5,-40,-20],
+  [120,-20, 20,  5,  5, 20,-20,120]
+];
+
+let board, humanColor, aiColor, currentTurn, gameOver, thinking;
+let wins={B:0,W:0};
+let animating=false;
+
+function makeBoard(){
+  const b=Array.from({length:SIZE},()=>Array(SIZE).fill(EMPTY));
+  b[3][3]=W; b[3][4]=B; b[4][3]=B; b[4][4]=W;
+  return b;
+}
+
+function opp(c){ return c===B?W:B; }
+
+function inBounds(r,c){ return r>=0&&r<SIZE&&c>=0&&c<SIZE; }
+
+function getFlips(b,r,c,color){
+  if(b[r][c]!==EMPTY) return [];
+  const flips=[];
+  for(const [dr,dc] of DIRS){
+    const line=[];
+    let nr=r+dr, nc=c+dc;
+    while(inBounds(nr,nc)&&b[nr][nc]===opp(color)){
+      line.push([nr,nc]);
+      nr+=dr; nc+=dc;
+    }
+    if(line.length>0&&inBounds(nr,nc)&&b[nr][nc]===color){
+      flips.push(...line);
+    }
+  }
+  return flips;
+}
+
+function getValidMoves(b,color){
+  const moves=[];
+  for(let r=0;r<SIZE;r++)
+    for(let c=0;c<SIZE;c++)
+      if(getFlips(b,r,c,color).length>0) moves.push([r,c]);
+  return moves;
+}
+
+function applyMove(b,r,c,color){
+  const nb=b.map(row=>[...row]);
+  const flips=getFlips(nb,r,c,color);
+  nb[r][c]=color;
+  for(const [fr,fc] of flips) nb[fr][fc]=color;
+  return {nb,flips};
+}
+
+function countDiscs(b,color){ return b.flat().filter(x=>x===color).length; }
+
+// ── Evaluation ────────────────────────────────────────────────────
+function evaluate(b, aiC){
+  const humC=opp(aiC);
+  const aiMoves=getValidMoves(b,aiC).length;
+  const humMoves=getValidMoves(b,humC).length;
+  const total=aiMoves+humMoves;
+
+  // mobility
+  const mobility = total>0 ? 100*(aiMoves-humMoves)/total : 0;
+
+  // positional weight
+  let posScore=0;
+  for(let r=0;r<SIZE;r++)
+    for(let c=0;c<SIZE;c++){
+      if(b[r][c]===aiC) posScore+=WEIGHTS[r][c];
+      else if(b[r][c]===humC) posScore-=WEIGHTS[r][c];
+    }
+
+  // disc parity (matters more endgame)
+  const aiD=countDiscs(b,aiC), humD=countDiscs(b,humC);
+  const parity = aiD+humD>0 ? 100*(aiD-humD)/(aiD+humD) : 0;
+
+  // corner capture
+  const corners=[[0,0],[0,7],[7,0],[7,7]];
+  let cornerScore=0;
+  for(const [r,c] of corners){
+    if(b[r][c]===aiC) cornerScore+=25;
+    else if(b[r][c]===humC) cornerScore-=25;
+  }
+
+  return posScore + mobility*0.5 + parity*0.2 + cornerScore*3;
+}
+
+// ── Minimax ───────────────────────────────────────────────────────
+function minimax(b, depth, alpha, beta, maximizing, aiC){
+  const c=maximizing?aiC:opp(aiC);
+  const moves=getValidMoves(b,c);
+
+  if(depth===0||( getValidMoves(b,aiC).length===0 && getValidMoves(b,opp(aiC)).length===0 )){
+    return evaluate(b,aiC);
+  }
+
+  if(moves.length===0){
+    // pass turn
+    return minimax(b,depth-1,alpha,beta,!maximizing,aiC);
+  }
+
+  // sort by positional weight for better pruning
+  moves.sort((a,b2)=>WEIGHTS[b2[0]][b2[1]]-WEIGHTS[a[0]][a[1]]);
+
+  if(maximizing){
+    let best=-Infinity;
+    for(const [r,c2] of moves){
+      const {nb}=applyMove(b,r,c2,c);
+      best=Math.max(best,minimax(nb,depth-1,alpha,beta,false,aiC));
+      alpha=Math.max(alpha,best);
+      if(beta<=alpha) break;
+    }
+    return best;
+  } else {
+    let best=Infinity;
+    for(const [r,c2] of moves){
+      const {nb}=applyMove(b,r,c2,c);
+      best=Math.min(best,minimax(nb,depth-1,alpha,beta,true,aiC));
+      beta=Math.min(beta,best);
+      if(beta<=alpha) break;
+    }
+    return best;
+  }
+}
+
+function getBestMove(b,aiC,depth){
+  const moves=getValidMoves(b,aiC);
+  if(!moves.length) return null;
+  moves.sort((a,b2)=>WEIGHTS[b2[0]][b2[1]]-WEIGHTS[a[0]][a[1]]);
+  let best=-Infinity, bestMove=moves[0];
+  for(const [r,c] of moves){
+    const {nb}=applyMove(b,r,c,aiC);
+    const val=minimax(nb,depth-1,-Infinity,Infinity,false,aiC);
+    if(val>best){ best=val; bestMove=[r,c]; }
+  }
+  return bestMove;
+}
+
+// ── Render ────────────────────────────────────────────────────────
+let discEls=[];
+
+function buildBoard(){
+  const boardEl=document.getElementById('board');
+  boardEl.innerHTML=''; discEls=[];
+  for(let r=0;r<SIZE;r++){
+    for(let c=0;c<SIZE;c++){
+      const cell=document.createElement('div');
+      cell.className='cell';
+      cell.dataset.r=r; cell.dataset.c=c;
+      const discEl=document.createElement('div');
+      discEl.className='disc';
+      discEl.innerHTML='<div class="disc-face disc-front"></div><div class="disc-face disc-back"></div>';
+      discEl.style.display='none';
+      cell.appendChild(discEl);
+      boardEl.appendChild(cell);
+      discEls.push(discEl);
+    }
+  }
+  boardEl.addEventListener('click',e=>{
+    const cell=e.target.closest('.cell');
+    if(!cell) return;
+    handleClick(parseInt(cell.dataset.r),parseInt(cell.dataset.c));
+  });
+}
+
+function renderBoard(validMoves=[]){
+  const vmSet=new Set(validMoves.map(([r,c])=>r*SIZE+c));
+  for(let r=0;r<SIZE;r++){
+    for(let c=0;c<SIZE;c++){
+      const idx=r*SIZE+c;
+      const cell=document.getElementById('board').children[idx];
+      const discEl=discEls[idx];
+      const v=board[r][c];
+
+      cell.className='cell'+(vmSet.has(idx)?' valid-move':'');
+
+      if(v===null){
+        discEl.style.display='none';
+      } else {
+        discEl.style.display='block';
+        // set final state without animation
+        if(v===B){ discEl.style.transform='rotateY(0deg)'; }
+        else      { discEl.style.transform='rotateY(180deg)'; }
+      }
+    }
+  }
+  updateScorebar();
+}
+
+async function animateMove(r,c,color,flips){
+  const idx=r*SIZE+c;
+  const discEl=discEls[idx];
+  discEl.style.display='block';
+  discEl.style.transform= color===B?'rotateY(0deg)':'rotateY(180deg)';
+  discEl.classList.add('placing');
+  await sleep(260);
+  discEl.classList.remove('placing');
+
+  // stagger flips
+  for(let i=0;i<flips.length;i++){
+    const [fr,fc]=flips[i];
+    const fIdx=fr*SIZE+fc;
+    const fEl=discEls[fIdx];
+    const curColor=board[fr][fc]===color?color:opp(color); // they've been updated in board already
+    // board already applied; disc still shows old color visually — flip it
+    setTimeout(()=>{
+      fEl.classList.remove('flipping-to-white','flipping-to-black');
+      if(color===W) fEl.classList.add('flipping-to-white');
+      else          fEl.classList.add('flipping-to-black');
+      setTimeout(()=>{
+        fEl.classList.remove('flipping-to-white','flipping-to-black');
+        fEl.style.transform=color===B?'rotateY(0deg)':'rotateY(180deg)';
+      }, 400);
+    }, i*60);
+  }
+  await sleep(flips.length*60+420);
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+function updateScorebar(){
+  const bCount=countDiscs(board,B);
+  const wCount=countDiscs(board,W);
+  document.getElementById('sc-human').textContent = humanColor===B?bCount:wCount;
+  document.getElementById('sc-ai').textContent    = aiColor===B?bCount:wCount;
+  document.getElementById('sw-human').textContent = wins[humanColor]+' win'+(wins[humanColor]!==1?'s':'');
+  document.getElementById('sw-ai').textContent    = wins[aiColor]+' win'+(wins[aiColor]!==1?'s':'');
+  document.getElementById('sh-human').classList.toggle('active',currentTurn===humanColor&&!gameOver);
+  document.getElementById('sh-ai').classList.toggle('active',currentTurn===aiColor&&!gameOver);
+  // swap disc icons if human plays white
+  document.getElementById('di-human').className='disc-icon '+(humanColor===B?'black':'white');
+  document.getElementById('di-ai').className='disc-icon '+(aiColor===B?'black':'white');
+}
+
+function setStatus(msg,cls=''){
+  const el=document.getElementById('status');
+  el.textContent=msg; el.className='status-bar'+(cls?' '+cls:'');
+}
+
+// ── Game logic ────────────────────────────────────────────────────
+function newGame(){
+  board=makeBoard();
+  humanColor=document.getElementById('side-sel').value;
+  aiColor=opp(humanColor);
+  currentTurn=B; gameOver=false; thinking=false; animating=false;
+  buildBoard();
+  const vm=getValidMoves(board,currentTurn);
+  renderBoard(currentTurn===humanColor?vm:[]);
+  updateScorebar();
+  if(currentTurn===humanColor){
+    setStatus('Your turn — place a '+(humanColor===B?'black':'white')+' disc');
+  } else {
+    setStatus('AI thinking…','thinking');
+    setTimeout(doAIMove,400);
+  }
+}
+
+async function handleClick(r,c){
+  if(gameOver||thinking||animating||currentTurn!==humanColor) return;
+  const flips=getFlips(board,r,c,humanColor);
+  if(flips.length===0) return;
+
+  animating=true;
+  const {nb,flips:f}=applyMove(board,r,c,humanColor);
+  board=nb;
+  await animateMove(r,c,humanColor,f);
+  animating=false;
+  currentTurn=aiColor;
+  await nextTurn();
+}
+
+async function doAIMove(){
+  thinking=true;
+  const depth=parseInt(document.getElementById('depth-sel').value);
+  await sleep(30);
+  const move=getBestMove(board,aiColor,depth);
+  thinking=false;
+  if(!move){
+    // AI must pass
+    currentTurn=humanColor;
+    await nextTurn();
+    return;
+  }
+  const [r,c]=move;
+  animating=true;
+  const {nb,flips}=applyMove(board,r,c,aiColor);
+  board=nb;
+  await animateMove(r,c,aiColor,flips);
+  animating=false;
+  currentTurn=humanColor;
+  await nextTurn();
+}
+
+async function nextTurn(){
+  const myMoves=getValidMoves(board,currentTurn);
+  const oppMoves=getValidMoves(board,opp(currentTurn));
+
+  if(myMoves.length===0&&oppMoves.length===0){
+    // game over
+    gameOver=true;
+    const bC=countDiscs(board,B), wC=countDiscs(board,W);
+    const humC=countDiscs(board,humanColor), aiC=countDiscs(board,aiColor);
+    renderBoard([]);
+    if(humC>aiC){
+      wins[humanColor]++;
+      updateScorebar();
+      setStatus(`You win! ${humC}–${aiC}`,'win');
+    } else if(aiC>humC){
+      wins[aiColor]++;
+      updateScorebar();
+      setStatus(`AI wins! ${aiC}–${humC}`,'lose');
+    } else {
+      setStatus(`Draw! ${humC}–${aiC}`,'draw');
+    }
+    return;
+  }
+
+  if(myMoves.length===0){
+    // must pass
+    const passColor=currentTurn===humanColor?'You pass':'AI passes';
+    setStatus(passColor+' (no valid moves)');
+    currentTurn=opp(currentTurn);
+    await sleep(900);
+    await nextTurn();
+    return;
+  }
+
+  renderBoard(currentTurn===humanColor?myMoves:[]);
+
+  if(currentTurn===humanColor){
+    setStatus('Your turn — place a '+(humanColor===B?'black':'white')+' disc');
+  } else {
+    setStatus('AI thinking…','thinking');
+    setTimeout(doAIMove,300);
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+newGame();
+</script>
+</body>
+</html>
