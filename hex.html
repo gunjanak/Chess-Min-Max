@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hex — Negamax AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c18;
+    --surface: #0e1628;
+    --border: #1a2540;
+    --p1: #3a9fff;
+    --p1-dark: #0a4a8a;
+    --p1-glow: rgba(58,159,255,0.5);
+    --p2: #ff5533;
+    --p2-dark: #8a1a08;
+    --p2-glow: rgba(255,85,51,0.5);
+    --empty: #141e35;
+    --empty-hover: #1e2e50;
+    --edge-blue-top: #0a3060;
+    --edge-blue-bot: #0a3060;
+    --edge-red-left: #601008;
+    --edge-red-right: #601008;
+    --text: #c8d8f0;
+    --text-muted: #4a5a7a;
+    --accent: #7ab8ff;
+    --win-path: rgba(255,230,50,0.85);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 20% 25%, rgba(58,159,255,0.07) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 75%, rgba(255,85,51,0.06) 0%, transparent 55%);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding: 28px 16px 48px;
+    gap: 18px;
+  }
+
+  header { text-align: center; }
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.6rem; font-weight: 900;
+    letter-spacing: 0.14em;
+    background: linear-gradient(135deg, var(--p1) 0%, var(--p2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 24px rgba(100,180,255,0.3));
+  }
+  .subtitle { font-size:0.6rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-muted); margin-top:5px; }
+  .algo-badge {
+    display:inline-block; margin-top:12px;
+    padding:5px 16px; border:1px solid var(--border); border-radius:20px;
+    font-size:0.58rem; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--accent); background:rgba(58,159,255,0.06);
+  }
+
+  /* Score bar */
+  .scorebar {
+    display:flex; width:100%; max-width:580px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; overflow:hidden;
+  }
+  .score-half {
+    flex:1; padding:13px 18px;
+    display:flex; align-items:center; gap:12px;
+    transition:background 0.3s;
+  }
+  .score-half.active-turn { background:rgba(255,255,255,0.03); }
+  .score-half:first-child { border-right:1px solid var(--border); }
+  .color-swatch {
+    width:28px; height:28px; border-radius:4px; flex-shrink:0;
+    transition:transform 0.3s;
+  }
+  .color-swatch.blue { background:var(--p1); box-shadow:0 0 12px var(--p1-glow); }
+  .color-swatch.red  { background:var(--p2); box-shadow:0 0 12px var(--p2-glow); }
+  .score-half.active-turn .color-swatch { transform:scale(1.15); }
+  .score-info { flex:1; }
+  .score-name { font-size:0.6rem; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-muted); }
+  .score-goal { font-size:0.62rem; color:var(--text-muted); margin-top:1px; }
+  .score-wins { font-size:1.4rem; font-weight:500; color:var(--text); line-height:1.1; }
+  .turn-dot {
+    width:7px; height:7px; border-radius:50%;
+    background:var(--accent); opacity:0;
+    box-shadow:0 0 8px var(--accent);
+    animation:blink 1s ease-in-out infinite; transition:opacity 0.3s;
+  }
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+  .score-half.active-turn .turn-dot { opacity:1; }
+
+  /* Board container */
+  .board-section {
+    display:flex; flex-direction:column; align-items:center; gap:0;
+    width:100%; max-width:640px;
+  }
+
+  /* Edge labels */
+  .edge-label {
+    font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase;
+    padding:4px 10px; border-radius:4px; font-weight:500;
+  }
+  .edge-label.blue { color:var(--p1); background:rgba(58,159,255,0.1); border:1px solid rgba(58,159,255,0.2); }
+  .edge-label.red  { color:var(--p2); background:rgba(255,85,51,0.1);  border:1px solid rgba(255,85,51,0.2); }
+  .edge-row { display:flex; justify-content:space-between; width:100%; padding:0 4px; margin:4px 0; }
+
+  /* SVG board wrapper */
+  #board-wrap {
+    width:100%;
+    overflow:visible;
+  }
+  svg#hexboard {
+    width:100%; height:auto; overflow:visible;
+    cursor:default;
+  }
+
+  /* Hex cells */
+  .hex-cell { transition:fill 0.12s; cursor:pointer; }
+  .hex-cell.empty { fill:var(--empty); stroke:#2a3a5a; stroke-width:1.5; }
+  .hex-cell.empty:hover { fill:var(--empty-hover); }
+  .hex-cell.p1 { fill:var(--p1); stroke:#1a5fa0; stroke-width:1.5; cursor:default; }
+  .hex-cell.p2 { fill:var(--p2); stroke:#a03020; stroke-width:1.5; cursor:default; }
+  .hex-cell.win-path { stroke:var(--win-path); stroke-width:3; filter:drop-shadow(0 0 6px rgba(255,230,50,0.8)); }
+  .hex-cell.p1.placing { animation:hexPop 0.28s cubic-bezier(0.34,1.56,0.64,1); }
+  .hex-cell.p2.placing { animation:hexPop 0.28s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes hexPop {
+    from { transform:scale(0.4); opacity:0.4; }
+    to   { transform:scale(1);   opacity:1; }
+  }
+  .hex-cell.hint { fill:rgba(122,184,255,0.15); stroke:rgba(122,184,255,0.4); stroke-width:1.5; cursor:pointer; }
+
+  /* Status */
+  .status-bar {
+    width:100%; max-width:580px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:11px 18px;
+    font-size:0.78rem; text-align:center; min-height:42px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .status-bar.thinking { color:var(--p2); animation:blink 0.8s ease-in-out infinite; }
+  .status-bar.win-human { color:var(--p1); }
+  .status-bar.win-ai    { color:var(--p2); }
+
+  /* Controls */
+  .controls {
+    display:flex; gap:10px; flex-wrap:wrap;
+    width:100%; max-width:580px;
+  }
+  .ctrl-group {
+    flex:1; min-width:130px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:12px 14px;
+  }
+  .ctrl-label { font-size:0.58rem; text-transform:uppercase; letter-spacing:0.14em; color:var(--text-muted); margin-bottom:7px; }
+  select, input[type=range] {
+    width:100%; background:var(--bg); border:1px solid var(--border);
+    color:var(--text); font-family:'JetBrains Mono',monospace;
+    font-size:0.72rem; padding:6px 8px; border-radius:6px;
+    outline:none; appearance:none;
+  }
+  input[type=range] { padding:2px 0; accent-color:var(--accent); }
+  .depth-row { display:flex; justify-content:space-between; margin-bottom:5px; }
+  .depth-val { font-size:0.72rem; color:var(--accent); }
+  .time-val  { font-size:0.72rem; color:var(--p2); }
+
+  .btn {
+    flex:1; min-width:110px; padding:12px;
+    background:transparent; border:1px solid var(--border);
+    color:var(--accent); font-family:'JetBrains Mono',monospace;
+    font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase;
+    border-radius:10px; cursor:pointer; transition:all 0.15s;
+  }
+  .btn:hover { background:rgba(58,159,255,0.08); border-color:var(--accent); }
+
+  /* Rules panel */
+  .rules {
+    width:100%; max-width:580px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:14px 18px;
+    font-size:0.67rem; color:var(--text-muted); line-height:1.8;
+  }
+  .rules strong { color:var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>HEX</h1>
+  <p class="subtitle">Negamax + Iterative Deepening AI</p>
+  <span class="algo-badge">ID-Negamax · Time-budgeted search</span>
+</header>
+
+<div class="scorebar">
+  <div class="score-half" id="sh-human">
+    <div class="color-swatch blue" id="sw-human"></div>
+    <div class="score-info">
+      <div class="score-name">You</div>
+      <div class="score-goal" id="goal-human">Connect Top ↔ Bottom</div>
+      <div class="score-wins" id="sc-human">0</div>
+    </div>
+    <div class="turn-dot"></div>
+  </div>
+  <div class="score-half" id="sh-ai">
+    <div class="color-swatch red" id="sw-ai"></div>
+    <div class="score-info">
+      <div class="score-name">AI</div>
+      <div class="score-goal" id="goal-ai">Connect Left ↔ Right</div>
+      <div class="score-wins" id="sc-ai">0</div>
+    </div>
+    <div class="turn-dot"></div>
+  </div>
+</div>
+
+<div class="board-section">
+  <div class="edge-row">
+    <span class="edge-label blue" id="top-label">▲ Blue — Top</span>
+    <span class="edge-label blue" id="bot-label">Bottom — Blue ▼</span>
+  </div>
+  <div id="board-wrap"><svg id="hexboard"></svg></div>
+  <div class="edge-row">
+    <span class="edge-label red" id="left-label">◀ Red — Left</span>
+    <span class="edge-label red" id="right-label">Right — Red ▶</span>
+  </div>
+</div>
+
+<div class="status-bar" id="status">Your turn — place a blue stone</div>
+
+<div class="controls">
+  <div class="ctrl-group">
+    <div class="ctrl-label">Board Size</div>
+    <select id="size-sel" onchange="newGame()">
+      <option value="7">7 × 7 (Easy)</option>
+      <option value="9" selected>9 × 9 (Standard)</option>
+      <option value="11">11 × 11 (Hard)</option>
+    </select>
+  </div>
+  <div class="ctrl-group">
+    <div class="ctrl-label">AI Time Budget</div>
+    <div class="depth-row">
+      <span style="font-size:0.6rem;color:var(--text-muted)">Fast</span>
+      <span class="time-val" id="time-label">2s</span>
+      <span style="font-size:0.6rem;color:var(--text-muted)">Strong</span>
+    </div>
+    <input type="range" min="1" max="5" value="2" id="time-sel"
+           oninput="document.getElementById('time-label').textContent=this.value+'s'">
+  </div>
+  <div class="ctrl-group">
+    <div class="ctrl-label">Play as</div>
+    <select id="side-sel" onchange="newGame()">
+      <option value="B">Blue (Top↔Bot)</option>
+      <option value="R">Red (Left↔Right)</option>
+    </select>
+  </div>
+  <button class="btn" onclick="newGame()">New Game</button>
+</div>
+
+<div class="rules">
+  <strong>How to play:</strong> Connect your two sides of the board with an unbroken chain of stones.
+  <strong>Blue</strong> connects Top to Bottom. <strong>Red</strong> connects Left to Right.
+  Hex has no draws — one player always wins. The board is shared: you block your opponent simply by filling cells they need.
+</div>
+
+<script>
+// ── Constants ────────────────────────────────────────────────────
+const EMPTY=0, BLUE=1, RED=2;
+const HEX_DIRS=[[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0]]; // 6 neighbors
+
+// ── Game state ───────────────────────────────────────────────────
+let N, board, humanColor, aiColor, currentTurn, gameOver, thinking;
+let wins={B:0,R:0};
+let aiStopFlag=false;
+
+function colorCode(c){ return c==='B'?BLUE:RED; }
+function opp(c){ return c===BLUE?RED:BLUE; }
+function oppCode(c){ return c==='B'?'R':'B'; }
+
+// ── Board helpers ────────────────────────────────────────────────
+function makeBoard(n){ return Array.from({length:n},()=>Array(n).fill(EMPTY)); }
+function cloneBoard(b){ return b.map(r=>[...r]); }
+function inBounds(r,c){ return r>=0&&r<N&&c>=0&&c<N; }
+
+function neighbors(r,c){
+  const res=[];
+  for(const [dr,dc] of HEX_DIRS){
+    const nr=r+dr, nc=c+dc;
+    if(inBounds(nr,nc)) res.push([nr,nc]);
+  }
+  return res;
+}
+
+// ── Win detection (BFS/DFS from one edge) ────────────────────────
+// BLUE wins: connects row 0 → row N-1
+// RED wins:  connects col 0 → col N-1
+function checkWin(b, player){
+  const visited=Array.from({length:N},()=>Array(N).fill(false));
+  const queue=[];
+  if(player===BLUE){
+    for(let c=0;c<N;c++) if(b[0][c]===BLUE){ queue.push([0,c]); visited[0][c]=true; }
+  } else {
+    for(let r=0;r<N;r++) if(b[r][0]===RED){ queue.push([r,0]); visited[r][0]=true; }
+  }
+  while(queue.length){
+    const [r,c]=queue.shift();
+    if(player===BLUE&&r===N-1) return true;
+    if(player===RED&&c===N-1) return true;
+    for(const [nr,nc] of neighbors(r,c)){
+      if(!visited[nr][nc]&&b[nr][nc]===player){
+        visited[nr][nc]=true; queue.push([nr,nc]);
+      }
+    }
+  }
+  return false;
+}
+
+function getWinPath(b, player){
+  // BFS returning path cells
+  const prev=Array.from({length:N},()=>Array(N).fill(null));
+  const visited=Array.from({length:N},()=>Array(N).fill(false));
+  const queue=[];
+  if(player===BLUE){
+    for(let c=0;c<N;c++) if(b[0][c]===BLUE){ queue.push([0,c]); visited[0][c]=true; }
+  } else {
+    for(let r=0;r<N;r++) if(b[r][0]===RED){ queue.push([r,0]); visited[r][0]=true; }
+  }
+  let endCell=null;
+  outer: while(queue.length){
+    const [r,c]=queue.shift();
+    if((player===BLUE&&r===N-1)||(player===RED&&c===N-1)){ endCell=[r,c]; break outer; }
+    for(const [nr,nc] of neighbors(r,c)){
+      if(!visited[nr][nc]&&b[nr][nc]===player){
+        visited[nr][nc]=true; prev[nr][nc]=[r,c]; queue.push([nr,nc]);
+      }
+    }
+  }
+  if(!endCell) return [];
+  const path=[]; let cur=endCell;
+  while(cur){ path.push(cur); cur=prev[cur[0]][cur[1]]; }
+  return path;
+}
+
+// ── Evaluation (Dijkstra virtual connection distance) ────────────
+// Shorter path to connect = better. Uses 0-cost for own stones, 1-cost for empty, Inf for opponent.
+function dijkstra(b, player){
+  const INF=1e9;
+  const dist=Array.from({length:N},()=>Array(N).fill(INF));
+  // min-heap: [cost, r, c]
+  const pq=[];
+  function push(cost,r,c){ pq.push([cost,r,c]); pq.sort((a,b2)=>a[0]-b2[0]); }
+  function pop(){ return pq.shift(); }
+
+  if(player===BLUE){
+    for(let c=0;c<N;c++){
+      if(b[0][c]!==opp(player)){ const cost=b[0][c]===player?0:1; dist[0][c]=cost; push(cost,0,c); }
+    }
+  } else {
+    for(let r=0;r<N;r++){
+      if(b[r][0]!==opp(player)){ const cost=b[r][0]===player?0:1; dist[r][0]=cost; push(cost,r,0); }
+    }
+  }
+  while(pq.length){
+    const [d,r,c]=pop();
+    if(d>dist[r][c]) continue;
+    for(const [nr,nc] of neighbors(r,c)){
+      if(b[nr][nc]===opp(player)) continue;
+      const nd=d+(b[nr][nc]===player?0:1);
+      if(nd<dist[nr][nc]){ dist[nr][nc]=nd; push(nd,nr,nc); }
+    }
+  }
+  let minDist=INF;
+  if(player===BLUE){ for(let c=0;c<N;c++) minDist=Math.min(minDist,dist[N-1][c]); }
+  else             { for(let r=0;r<N;r++) minDist=Math.min(minDist,dist[r][N-1]); }
+  return minDist===INF?1000:minDist;
+}
+
+function evaluate(b, forPlayer){
+  if(checkWin(b,forPlayer))   return 100000;
+  if(checkWin(b,opp(forPlayer))) return -100000;
+  const myDist  = dijkstra(b, forPlayer);
+  const oppDist = dijkstra(b, opp(forPlayer));
+  return oppDist - myDist;
+}
+
+function getEmptyCells(b){
+  const cells=[];
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(b[r][c]===EMPTY) cells.push([r,c]);
+  return cells;
+}
+
+// Move ordering: prefer center and cells adjacent to own stones
+function orderMoves(b, moves, player){
+  const mid=(N-1)/2;
+  return moves.slice().sort((a,b2)=>{
+    const da=Math.abs(a[0]-mid)+Math.abs(a[1]-mid);
+    const db=Math.abs(b2[0]-mid)+Math.abs(b2[1]-mid);
+    // adjacency bonus
+    let aa=0,ab=0;
+    for(const [nr,nc] of neighbors(a[0],a[1])) if(b[nr][nc]===player) aa++;
+    for(const [nr,nc] of neighbors(b2[0],b2[1])) if(b[nr][nc]===player) ab++;
+    return (db+aa)-(da+ab);
+  });
+}
+
+// ── Negamax with Alpha-Beta ───────────────────────────────────────
+let nodeCount=0;
+function negamax(b, depth, alpha, beta, player, startTime, timeBudget){
+  if(Date.now()-startTime > timeBudget) return {score:evaluate(b,player), move:null, timeout:true};
+
+  if(checkWin(b,player))     return {score: 100000+depth, move:null};
+  if(checkWin(b,opp(player))) return {score:-100000-depth, move:null};
+
+  const empty=getEmptyCells(b);
+  if(depth===0||empty.length===0) return {score:evaluate(b,player), move:null};
+
+  const ordered=orderMoves(b,empty,player);
+  let bestScore=-Infinity, bestMove=ordered[0];
+  let timedOut=false;
+
+  for(const [r,c] of ordered){
+    const nb=cloneBoard(b);
+    nb[r][c]=player;
+    nodeCount++;
+    const result=negamax(nb,depth-1,-beta,-alpha,opp(player),startTime,timeBudget);
+    const score=-result.score;
+    if(result.timeout){ timedOut=true; break; }
+    if(score>bestScore){ bestScore=score; bestMove=[r,c]; }
+    alpha=Math.max(alpha,score);
+    if(alpha>=beta) break;
+  }
+  return {score:bestScore, move:bestMove, timeout:timedOut};
+}
+
+// ── Iterative Deepening ───────────────────────────────────────────
+function iterativeDeepening(b, player, timeBudgetMs){
+  const startTime=Date.now();
+  let bestMove=getEmptyCells(b)[0];
+  let depth=1;
+  nodeCount=0;
+
+  // Opening: play center if empty
+  const mid=Math.floor(N/2);
+  if(b[mid][mid]===EMPTY && getEmptyCells(b).length > N*N-2){
+    return [mid,mid];
+  }
+
+  while(Date.now()-startTime < timeBudgetMs){
+    const result=negamax(b,depth,-Infinity,Infinity,player,startTime,timeBudgetMs);
+    if(!result.timeout && result.move) bestMove=result.move;
+    if(result.score>=100000) break; // found forced win
+    depth++;
+    if(depth>N*N) break;
+  }
+  return bestMove;
+}
+
+// ── SVG Board Rendering ───────────────────────────────────────────
+const HEX_SIZE=28;
+const HEX_H=HEX_SIZE*2;
+const HEX_W=Math.sqrt(3)*HEX_SIZE;
+
+function hexCorners(cx,cy,size){
+  const pts=[];
+  for(let i=0;i<6;i++){
+    const ang=Math.PI/180*(60*i-30);
+    pts.push([cx+size*Math.cos(ang), cy+size*Math.sin(ang)]);
+  }
+  return pts.map(p=>p.join(',')).join(' ');
+}
+
+function cellCenter(r,c){
+  const x=HEX_W*(c+r*0.5)+HEX_SIZE*2;
+  const y=HEX_H*0.75*r+HEX_SIZE*1.2;
+  return [x,y];
+}
+
+let cellEls={};
+function buildSVG(){
+  const svg=document.getElementById('hexboard');
+  svg.innerHTML=''; cellEls={};
+
+  // Compute viewBox
+  const lastR=N-1, lastC=N-1;
+  const [lx,ly]=cellCenter(lastR,lastC);
+  const vw=lx+HEX_SIZE*2.5;
+  const vh=ly+HEX_SIZE*1.8;
+  svg.setAttribute('viewBox',`0 0 ${vw} ${vh}`);
+
+  // Edge backgrounds
+  function edgePoly(cells, color){
+    const pad=HEX_SIZE*0.55;
+    const pts=cells.map(([r,c])=>cellCenter(r,c));
+    if(pts.length<2) return;
+    const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    poly.setAttribute('points', pts.map(p=>p.join(',')).join(' '));
+    poly.setAttribute('stroke', color);
+    poly.setAttribute('stroke-width', HEX_SIZE*1.1);
+    poly.setAttribute('stroke-linecap','round');
+    poly.setAttribute('stroke-linejoin','round');
+    poly.setAttribute('fill','none');
+    poly.setAttribute('opacity','0.18');
+    svg.appendChild(poly);
+  }
+  // Blue: top row & bottom row
+  edgePoly(Array.from({length:N},(_,c)=>[0,c]),   '#3a9fff');
+  edgePoly(Array.from({length:N},(_,c)=>[N-1,c]), '#3a9fff');
+  // Red: left col & right col
+  edgePoly(Array.from({length:N},(_,r)=>[r,0]),   '#ff5533');
+  edgePoly(Array.from({length:N},(_,r)=>[r,N-1]), '#ff5533');
+
+  // Cells
+  for(let r=0;r<N;r++){
+    for(let c=0;c<N;c++){
+      const [cx,cy]=cellCenter(r,c);
+      const hex=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+      hex.setAttribute('points', hexCorners(cx,cy,HEX_SIZE*0.92));
+      hex.setAttribute('class','hex-cell empty');
+      hex.dataset.r=r; hex.dataset.c=c;
+      svg.appendChild(hex);
+      cellEls[`${r},${c}`]=hex;
+    }
+  }
+
+  svg.addEventListener('click',e=>{
+    const hex=e.target.closest('.hex-cell');
+    if(!hex) return;
+    handleClick(parseInt(hex.dataset.r),parseInt(hex.dataset.c));
+  });
+}
+
+function renderBoard(winPath=[]){
+  const winSet=new Set(winPath.map(([r,c])=>`${r},${c}`));
+  for(let r=0;r<N;r++){
+    for(let c=0;c<N;c++){
+      const el=cellEls[`${r},${c}`];
+      const v=board[r][c];
+      let cls='hex-cell ';
+      if(v===BLUE) cls+='p1';
+      else if(v===RED) cls+='p2';
+      else cls+= (!gameOver&&!thinking&&currentTurn===humanColor)?'empty hint':'empty';
+      if(winSet.has(`${r},${c}`)) cls+=' win-path';
+      el.className=cls;
+    }
+  }
+  updateSidebar();
+}
+
+function updateSidebar(){
+  const hc=humanColor==='B'?'B':'R';
+  const ac=aiColor;
+  document.getElementById('sc-human').textContent=wins[hc];
+  document.getElementById('sc-ai').textContent=wins[ac];
+  document.getElementById('sh-human').classList.toggle('active-turn',currentTurn===colorCode(humanColor)&&!gameOver);
+  document.getElementById('sh-ai').classList.toggle('active-turn',currentTurn===colorCode(aiColor)&&!gameOver);
+  // color swatches
+  document.getElementById('sw-human').className='color-swatch '+(humanColor==='B'?'blue':'red');
+  document.getElementById('sw-ai').className='color-swatch '+(aiColor==='B'?'blue':'red');
+  // goals
+  document.getElementById('goal-human').textContent=humanColor==='B'?'Connect Top ↔ Bottom':'Connect Left ↔ Right';
+  document.getElementById('goal-ai').textContent=aiColor==='B'?'Connect Top ↔ Bottom':'Connect Left ↔ Right';
+  // edge labels
+  document.getElementById('top-label').textContent='▲ Blue — Top';
+  document.getElementById('bot-label').textContent='Bottom — Blue ▼';
+  document.getElementById('left-label').textContent='◀ Red — Left';
+  document.getElementById('right-label').textContent='Right — Red ▶';
+}
+
+function setStatus(msg,cls=''){
+  const el=document.getElementById('status');
+  el.textContent=msg; el.className='status-bar'+(cls?' '+cls:'');
+}
+
+// ── Interaction ───────────────────────────────────────────────────
+function handleClick(r,c){
+  if(gameOver||thinking||currentTurn!==colorCode(humanColor)) return;
+  if(board[r][c]!==EMPTY) return;
+  placeStone(r,c,colorCode(humanColor),true);
+}
+
+function placeStone(r,c,player,isHuman){
+  board[r][c]=player;
+  // animate
+  const el=cellEls[`${r},${c}`];
+  el.className='hex-cell '+(player===BLUE?'p1':'p2')+' placing';
+  setTimeout(()=>{ if(el) el.classList.remove('placing'); },300);
+
+  if(checkWin(board,player)){
+    gameOver=true;
+    const path=getWinPath(board,player);
+    renderBoard(path);
+    const humanWon=player===colorCode(humanColor);
+    if(humanWon){ wins[humanColor]++; setStatus('You win! Path connected! 🎉','win-human'); }
+    else        { wins[aiColor]++;    setStatus('AI wins! Connection complete.','win-ai'); }
+    updateSidebar();
+    return;
+  }
+  currentTurn=opp(currentTurn);
+  renderBoard();
+  if(currentTurn===colorCode(aiColor)&&!gameOver){
+    setStatus('AI thinking…','thinking');
+    thinking=true;
+    setTimeout(doAIMove,60);
+  } else {
+    setStatus('Your turn — place a '+(humanColor==='B'?'blue':'red')+' stone');
+  }
+}
+
+function doAIMove(){
+  const budgetSec=parseInt(document.getElementById('time-sel').value);
+  const budgetMs=budgetSec*1000;
+  const move=iterativeDeepening(board,colorCode(aiColor),budgetMs);
+  thinking=false;
+  if(move) placeStone(move[0],move[1],colorCode(aiColor),false);
+}
+
+// ── New Game ──────────────────────────────────────────────────────
+function newGame(){
+  N=parseInt(document.getElementById('size-sel').value);
+  board=makeBoard(N);
+  humanColor=document.getElementById('side-sel').value;
+  aiColor=oppCode(humanColor);
+  currentTurn=BLUE; // Blue always goes first
+  gameOver=false; thinking=false;
+  buildSVG();
+  renderBoard();
+  if(currentTurn===colorCode(humanColor)){
+    setStatus('Your turn — place a '+(humanColor==='B'?'blue':'red')+' stone');
+  } else {
+    setStatus('AI thinking…','thinking');
+    thinking=true;
+    setTimeout(doAIMove,300);
+  }
+}
+
+newGame();
+</script>
+</body>
+</html>
