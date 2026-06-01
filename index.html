@@ -19,14 +19,14 @@
   body {
     background: var(--bg);
     background-image:
-      radial-gradient(ellipse at 15% 30%, rgba(74,127,255,0.07) 0%, transparent 55%),
-      radial-gradient(ellipse at 85% 70%, rgba(255,61,90,0.05) 0%, transparent 55%),
-      radial-gradient(ellipse at 50% 90%, rgba(77,255,145,0.04) 0%, transparent 50%);
+      radial-gradient(ellipse at 15% 25%, rgba(74,127,255,0.07) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 75%, rgba(255,61,90,0.05) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 95%, rgba(77,255,145,0.04) 0%, transparent 45%),
+      radial-gradient(ellipse at 80% 15%, rgba(232,144,42,0.04) 0%, transparent 45%);
     color: var(--text);
     font-family: 'IBM Plex Mono', monospace;
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+    display: flex; flex-direction: column;
     align-items: center;
     padding: 52px 20px 64px;
     gap: 52px;
@@ -36,164 +36,138 @@
   header { text-align: center; }
   .logo {
     font-family: 'Righteous', cursive;
-    font-size: 3.2rem;
-    letter-spacing: 0.12em;
+    font-size: 3.2rem; letter-spacing: 0.12em;
     background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     background-clip: text;
     filter: drop-shadow(0 0 32px rgba(74,127,255,0.28));
   }
-  .tagline {
-    font-size: 0.65rem; letter-spacing: 0.22em;
-    text-transform: uppercase; color: var(--text-muted); margin-top: 10px;
-  }
-  .algo-badge {
-    display: inline-block; margin-top: 16px;
-    padding: 6px 18px;
-    border: 1px solid var(--border); border-radius: 20px;
-    font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase;
+  .tagline { font-size: 0.65rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-muted); margin-top: 10px; }
+  .badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+  .badge {
+    padding: 5px 14px; border: 1px solid var(--border); border-radius: 20px;
+    font-size: 0.58rem; letter-spacing: 0.13em; text-transform: uppercase;
     color: var(--accent); background: rgba(74,127,255,0.06);
   }
+  .badge.purple { color: #a78bfa; background: rgba(167,139,250,0.06); border-color: rgba(167,139,250,0.2); }
 
-  /* ── Cards grid ── */
-  .cards {
+  /* ── Grid: 2 rows — top row 3 cards, bottom row 2 centered ── */
+  .cards-top {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 22px;
-    width: 100%;
-    max-width: 1020px;
+    width: 100%; max-width: 1020px;
+  }
+  .cards-bottom {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 22px;
+    width: 100%; max-width: 680px;
   }
 
+  /* ── Card ── */
   .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    overflow: hidden;
-    text-decoration: none;
-    color: inherit;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; overflow: hidden;
+    text-decoration: none; color: inherit;
     display: flex; flex-direction: column;
     transition: transform 0.22s, box-shadow 0.22s, border-color 0.22s;
   }
   .card:hover { transform: translateY(-7px); }
+  .card.chess:hover    { border-color: #c8a85a; box-shadow: 0 24px 60px rgba(200,168,90,0.15); }
+  .card.c4:hover       { border-color: #ff3d5a; box-shadow: 0 24px 60px rgba(255,61,90,0.15); }
+  .card.othello:hover  { border-color: #4dff91; box-shadow: 0 24px 60px rgba(77,255,145,0.13); }
+  .card.checkers:hover { border-color: #e8902a; box-shadow: 0 24px 60px rgba(232,144,42,0.14); }
+  .card.hex:hover      { border-color: #7ab8ff; box-shadow: 0 24px 60px rgba(58,159,255,0.18); }
 
-  .card.chess:hover   { border-color: #c8a85a; box-shadow: 0 24px 60px rgba(200,168,90,0.15); }
-  .card.c4:hover      { border-color: #ff3d5a; box-shadow: 0 24px 60px rgba(255,61,90,0.15); }
-  .card.othello:hover { border-color: #4dff91; box-shadow: 0 24px 60px rgba(77,255,145,0.13); }
-  .card.checkers:hover{ border-color: #e8902a; box-shadow: 0 24px 60px rgba(232,144,42,0.14); }
-
-  /* ── Preview area ── */
+  /* ── Preview ── */
   .preview {
-    height: 170px;
+    height: 160px;
     display: flex; align-items: center; justify-content: center;
     position: relative; overflow: hidden;
   }
-  .chess   .preview { background: linear-gradient(145deg,#1a1208,#2a1e0e); }
-  .c4      .preview { background: linear-gradient(145deg,#0d1020,#1a2040); }
-  .othello .preview { background: linear-gradient(145deg,#060d08,#0a1a10); }
-  .checkers.preview,
+  .chess   .preview  { background: linear-gradient(145deg,#1a1208,#2a1e0e); }
+  .c4      .preview  { background: linear-gradient(145deg,#0d1020,#1a2040); }
+  .othello .preview  { background: linear-gradient(145deg,#060d08,#0a1a10); }
   .checkers .preview { background: linear-gradient(145deg,#12080a,#1e100c); }
+  .hex     .preview  { background: linear-gradient(145deg,#080c18,#0e1628); }
 
-  .orb {
-    position: absolute; border-radius: 50%;
-    filter: blur(44px); opacity: 0.22; pointer-events: none;
-  }
+  .orb { position:absolute; border-radius:50%; filter:blur(44px); opacity:0.22; pointer-events:none; }
 
   /* Mini chess */
-  .mini-board {
-    display: grid; grid-template-columns: repeat(8,1fr);
-    width: 116px; height: 116px;
-    border-radius: 6px; overflow: hidden;
-    box-shadow: 0 8px 28px rgba(0,0,0,0.65); opacity: 0.92;
-  }
-  .mini-sq { display:flex; align-items:center; justify-content:center; font-size:0.72rem; }
-  .mini-sq.l { background:#c8b596; }
-  .mini-sq.d { background:#8b6239; }
+  .mini-board { display:grid; grid-template-columns:repeat(8,1fr); width:108px; height:108px; border-radius:5px; overflow:hidden; box-shadow:0 8px 28px rgba(0,0,0,0.65); }
+  .mini-sq { display:flex; align-items:center; justify-content:center; font-size:0.68rem; }
+  .mini-sq.l { background:#c8b596; } .mini-sq.d { background:#8b6239; }
 
-  /* Mini Connect Four */
-  .mini-c4 {
-    background: #1a2744; border-radius: 8px; padding: 7px;
-    display: grid; grid-template-columns: repeat(7,1fr); gap: 4px;
-    width: 126px; box-shadow: 0 8px 28px rgba(0,0,0,0.65);
-  }
+  /* Mini C4 */
+  .mini-c4 { background:#1a2744; border-radius:7px; padding:6px; display:grid; grid-template-columns:repeat(7,1fr); gap:4px; width:120px; box-shadow:0 8px 28px rgba(0,0,0,0.65); }
   .mini-disc { aspect-ratio:1; border-radius:50%; }
   .mini-disc.e { background:#0d1520; }
   .mini-disc.r { background:#ff3d5a; box-shadow:0 0 5px rgba(255,61,90,0.55); }
   .mini-disc.y { background:#ffd020; box-shadow:0 0 5px rgba(255,208,32,0.5); }
 
   /* Mini Othello */
-  .mini-othello {
-    display: grid; grid-template-columns: repeat(8,1fr);
-    gap: 2px; background: #1d8a48;
-    width: 116px; height: 116px;
-    border-radius: 6px; overflow: hidden; padding: 2px;
-    box-shadow: 0 8px 28px rgba(0,0,0,0.65);
-  }
-  .mini-othello-sq {
-    background: #0f5c2e;
-    display:flex; align-items:center; justify-content:center;
-    border-radius: 1px;
-  }
-  .mini-o-disc {
-    width:72%; height:72%; border-radius:50%;
-  }
+  .mini-othello { display:grid; grid-template-columns:repeat(8,1fr); gap:2px; background:#1d8a48; width:108px; height:108px; border-radius:5px; overflow:hidden; padding:2px; box-shadow:0 8px 28px rgba(0,0,0,0.65); }
+  .mini-othello-sq { background:#0f5c2e; display:flex; align-items:center; justify-content:center; border-radius:1px; }
+  .mini-o-disc { width:72%; height:72%; border-radius:50%; }
   .mini-o-disc.b { background:radial-gradient(circle at 35% 30%,#444,#111); box-shadow:0 1px 4px rgba(0,0,0,0.7); }
   .mini-o-disc.w { background:radial-gradient(circle at 35% 30%,#fff,#ccc); box-shadow:0 1px 4px rgba(0,0,0,0.4); }
 
   /* Mini Checkers */
-  .mini-checkers {
-    display: grid; grid-template-columns: repeat(8,1fr);
-    width: 116px; height: 116px;
-    border-radius: 6px; overflow: hidden;
-    box-shadow: 0 8px 28px rgba(0,0,0,0.65); opacity:0.92;
-  }
+  .mini-checkers { display:grid; grid-template-columns:repeat(8,1fr); width:108px; height:108px; border-radius:5px; overflow:hidden; box-shadow:0 8px 28px rgba(0,0,0,0.65); }
   .mini-csq { display:flex; align-items:center; justify-content:center; }
-  .mini-csq.cl { background:#e8c89a; }
-  .mini-csq.cd { background:#7a3a1e; }
-  .mini-cp {
-    width:68%; height:68%; border-radius:50%;
-  }
+  .mini-csq.cl { background:#e8c89a; } .mini-csq.cd { background:#7a3a1e; }
+  .mini-cp { width:68%; height:68%; border-radius:50%; }
   .mini-cp.r { background:radial-gradient(circle at 35% 30%,#ee5544,#881111); box-shadow:0 2px 6px rgba(204,34,34,0.6); }
   .mini-cp.w { background:radial-gradient(circle at 35% 30%,#fff,#b0ada4); box-shadow:0 2px 6px rgba(200,200,200,0.4); }
 
+  /* Mini Hex */
+  .mini-hex-wrap { position:relative; width:130px; height:100px; }
+  .mini-hex-wrap svg { width:100%; height:100%; overflow:visible; }
+
   /* ── Card body ── */
-  .card-body { padding: 18px 20px 22px; flex:1; display:flex; flex-direction:column; gap:9px; }
-  .card-title { font-family:'Righteous',cursive; font-size:1.35rem; letter-spacing:0.06em; }
+  .card-body { padding:16px 18px 20px; flex:1; display:flex; flex-direction:column; gap:8px; }
+  .card-title { font-family:'Righteous',cursive; font-size:1.25rem; letter-spacing:0.06em; }
   .chess    .card-title { color:#c8a85a; }
   .c4       .card-title { color:#ff3d5a; }
   .othello  .card-title { color:#4dff91; }
   .checkers .card-title { color:#e8902a; }
+  .hex      .card-title { color:#7ab8ff; }
 
-  .card-desc { font-size:0.68rem; color:var(--text-muted); line-height:1.75; flex:1; }
+  .card-desc { font-size:0.65rem; color:var(--text-muted); line-height:1.75; flex:1; }
 
   .card-tags { display:flex; gap:5px; flex-wrap:wrap; margin-top:2px; }
-  .tag {
-    font-size:0.56rem; letter-spacing:0.1em; text-transform:uppercase;
-    padding:3px 8px; border-radius:20px;
-    border:1px solid var(--border); color:var(--text-muted);
-  }
+  .tag { font-size:0.54rem; letter-spacing:0.09em; text-transform:uppercase; padding:3px 7px; border-radius:20px; border:1px solid var(--border); color:var(--text-muted); }
   .chess    .tag.hl { border-color:#7a6435; color:#c8a85a; background:rgba(200,168,90,0.07); }
   .c4       .tag.hl { border-color:#c02040; color:#ff3d5a; background:rgba(255,61,90,0.07); }
   .othello  .tag.hl { border-color:#1a5c35; color:#4dff91; background:rgba(77,255,145,0.07); }
   .checkers .tag.hl { border-color:#7a4010; color:#e8902a; background:rgba(232,144,42,0.07); }
+  .hex      .tag.hl { border-color:#1a3a6a; color:#7ab8ff; background:rgba(58,159,255,0.07); }
 
   .play-btn {
-    margin-top:12px; padding:11px; border-radius:10px; border:none;
-    font-family:'IBM Plex Mono',monospace; font-size:0.68rem;
-    letter-spacing:0.14em; text-transform:uppercase;
+    margin-top:10px; padding:10px; border-radius:10px; border:none;
+    font-family:'IBM Plex Mono',monospace; font-size:0.66rem;
+    letter-spacing:0.13em; text-transform:uppercase;
     cursor:pointer; text-align:center; display:block; text-decoration:none;
-    transition:filter 0.15s, transform 0.12s; font-weight:500;
+    transition:filter 0.15s,transform 0.12s; font-weight:500;
   }
   .play-btn:hover { filter:brightness(1.12); transform:scale(1.02); }
   .chess    .play-btn { background:linear-gradient(135deg,#8b6239,#c8a85a); color:#1a1208; }
   .c4       .play-btn { background:linear-gradient(135deg,#ff3d5a,#ffd020); color:#0d0a00; }
   .othello  .play-btn { background:linear-gradient(135deg,#1a7a40,#4dff91); color:#030d06; }
   .checkers .play-btn { background:linear-gradient(135deg,#8b3010,#e8902a); color:#120408; }
+  .hex      .play-btn { background:linear-gradient(135deg,#1a3a8a,#7ab8ff); color:#04080f; }
 
   /* ── Footer ── */
-  footer {
-    font-size:0.6rem; color:var(--text-muted);
-    letter-spacing:0.1em; text-align:center; opacity:0.55;
+  footer { font-size:0.6rem; color:var(--text-muted); letter-spacing:0.1em; text-align:center; opacity:0.55; }
+
+  /* Responsive */
+  @media(max-width:740px){
+    .cards-top  { grid-template-columns:1fr; max-width:360px; }
+    .cards-bottom { grid-template-columns:1fr; max-width:360px; }
+  }
+  @media(min-width:741px) and (max-width:960px){
+    .cards-top { grid-template-columns:repeat(2,1fr); }
   }
 </style>
 </head>
@@ -201,26 +175,29 @@
 
 <header>
   <div class="logo">Arcade</div>
-  <p class="tagline">Four classic strategy games vs AI</p>
-  <span class="algo-badge">Powered by Minimax + Alpha-Beta Pruning</span>
+  <p class="tagline">Five classic strategy games vs AI</p>
+  <div class="badges">
+    <span class="badge">Minimax · Alpha-Beta</span>
+    <span class="badge purple">Negamax · Iterative Deepening</span>
+  </div>
 </header>
 
-<div class="cards">
+<!-- Top row: 3 cards -->
+<div class="cards-top">
 
   <!-- Chess -->
   <a class="card chess" href="chess_minimax.html">
     <div class="preview">
-      <div class="orb" style="width:110px;height:110px;background:#c8a85a;top:-18px;right:-18px;"></div>
+      <div class="orb" style="width:100px;height:100px;background:#c8a85a;top:-16px;right:-16px;"></div>
       <div class="mini-board" id="mini-chess"></div>
     </div>
     <div class="card-body">
       <div class="card-title">Chess</div>
-      <p class="card-desc">Full chess engine with castling, en passant, and pawn promotion. AI uses piece-square tables for positional play.</p>
+      <p class="card-desc">Full engine with castling, en passant & promotion. AI uses piece-square tables for positional play.</p>
       <div class="card-tags">
         <span class="tag hl">Minimax</span>
         <span class="tag hl">Alpha-Beta</span>
         <span class="tag">Depth 1–5</span>
-        <span class="tag">64 squares</span>
       </div>
       <span class="play-btn">Play Chess →</span>
     </div>
@@ -229,17 +206,16 @@
   <!-- Connect Four -->
   <a class="card c4" href="connect_four.html">
     <div class="preview">
-      <div class="orb" style="width:110px;height:110px;background:#ff3d5a;bottom:-18px;left:-18px;"></div>
+      <div class="orb" style="width:100px;height:100px;background:#ff3d5a;bottom:-16px;left:-16px;"></div>
       <div class="mini-c4" id="mini-c4"></div>
     </div>
     <div class="card-body">
       <div class="card-title">Connect Four</div>
-      <p class="card-desc">Drop discs to connect four in a row. AI uses center-column ordering and window scoring for tight defense and attack.</p>
+      <p class="card-desc">Drop discs to line up four. AI uses center-column ordering and window scoring.</p>
       <div class="card-tags">
         <span class="tag hl">Minimax</span>
         <span class="tag hl">Alpha-Beta</span>
         <span class="tag">Depth 1–8</span>
-        <span class="tag">7×6 grid</span>
       </div>
       <span class="play-btn">Play Connect Four →</span>
     </div>
@@ -248,38 +224,59 @@
   <!-- Othello -->
   <a class="card othello" href="othello.html">
     <div class="preview">
-      <div class="orb" style="width:110px;height:110px;background:#4dff91;top:-18px;left:-18px;"></div>
+      <div class="orb" style="width:100px;height:100px;background:#4dff91;top:-16px;left:-16px;"></div>
       <div class="mini-othello" id="mini-othello"></div>
     </div>
     <div class="card-body">
       <div class="card-title">Othello</div>
-      <p class="card-desc">Flip your opponent's discs to dominate the board. AI weighs corners heavily and maximises mobility at every turn.</p>
+      <p class="card-desc">Flip opponent discs to dominate. AI weighs corners heavily and maximises mobility.</p>
       <div class="card-tags">
         <span class="tag hl">Minimax</span>
         <span class="tag hl">Alpha-Beta</span>
         <span class="tag">Depth 1–8</span>
-        <span class="tag">8×8 board</span>
       </div>
       <span class="play-btn">Play Othello →</span>
     </div>
   </a>
 
+</div>
+
+<!-- Bottom row: 2 cards centered -->
+<div class="cards-bottom">
+
   <!-- Checkers -->
   <a class="card checkers" href="checkers.html">
     <div class="preview">
-      <div class="orb" style="width:110px;height:110px;background:#e8902a;bottom:-18px;right:-18px;"></div>
+      <div class="orb" style="width:100px;height:100px;background:#e8902a;bottom:-16px;right:-16px;"></div>
       <div class="mini-checkers" id="mini-checkers"></div>
     </div>
     <div class="card-body">
       <div class="card-title">Checkers</div>
-      <p class="card-desc">Classic diagonal capture game with mandatory jumps and kings. AI chains multi-jumps and controls key board squares.</p>
+      <p class="card-desc">Mandatory jumps, multi-captures and kings. AI chains multi-jumps and controls key squares.</p>
       <div class="card-tags">
         <span class="tag hl">Minimax</span>
         <span class="tag hl">Alpha-Beta</span>
         <span class="tag">Depth 1–10</span>
-        <span class="tag">8×8 board</span>
       </div>
       <span class="play-btn">Play Checkers →</span>
+    </div>
+  </a>
+
+  <!-- Hex -->
+  <a class="card hex" href="hex.html">
+    <div class="preview">
+      <div class="orb" style="width:100px;height:100px;background:#3a9fff;top:-16px;right:-16px;"></div>
+      <div class="mini-hex-wrap"><svg id="mini-hex"></svg></div>
+    </div>
+    <div class="card-body">
+      <div class="card-title">Hex</div>
+      <p class="card-desc">Connect your two sides before your opponent does. No draws — one player always wins.</p>
+      <div class="card-tags">
+        <span class="tag hl">Negamax</span>
+        <span class="tag hl">Iter. Deepening</span>
+        <span class="tag">7×7 · 9×9 · 11×11</span>
+      </div>
+      <span class="play-btn">Play Hex →</span>
     </div>
   </a>
 
@@ -289,83 +286,67 @@
 
 <script>
 // ── Mini Chess ────────────────────────────────────────────────────
-const chessPieces = {
-  0:'♜',1:'♞',2:'♝',3:'♛',4:'♚',5:'♝',6:'♞',7:'♜',
-  8:'♟',9:'♟',10:'♟',11:'♟',12:'♟',13:'♟',14:'♟',15:'♟',
-  48:'♙',49:'♙',50:'♙',51:'♙',52:'♙',53:'♙',54:'♙',55:'♙',
-  56:'♖',57:'♘',58:'♗',59:'♕',60:'♔',61:'♗',62:'♘',63:'♖'
-};
+const chessPieces={0:'♜',1:'♞',2:'♝',3:'♛',4:'♚',5:'♝',6:'♞',7:'♜',8:'♟',9:'♟',10:'♟',11:'♟',12:'♟',13:'♟',14:'♟',15:'♟',48:'♙',49:'♙',50:'♙',51:'♙',52:'♙',53:'♙',54:'♙',55:'♙',56:'♖',57:'♘',58:'♗',59:'♕',60:'♔',61:'♗',62:'♘',63:'♖'};
 const mc=document.getElementById('mini-chess');
 for(let i=0;i<64;i++){
   const sq=document.createElement('div');
   const r=Math.floor(i/8),c=i%8;
   sq.className='mini-sq '+((r+c)%2===0?'l':'d');
-  if(chessPieces[i]){
-    sq.textContent=chessPieces[i];
-    sq.style.color=i<16?'#1a1510':'#fff';
-    if(i>=48) sq.style.textShadow='-0.5px -0.5px 0 #3a2a10,0.5px 0.5px 0 #3a2a10';
-  }
+  if(chessPieces[i]){ sq.textContent=chessPieces[i]; sq.style.color=i<16?'#1a1510':'#fff'; if(i>=48) sq.style.textShadow='-0.5px -0.5px 0 #3a2a10,0.5px 0.5px 0 #3a2a10'; }
   mc.appendChild(sq);
 }
 
 // ── Mini Connect Four ─────────────────────────────────────────────
-const c4State=[
-  [0,0,0,0,0,0,0],
-  [0,0,0,0,0,0,0],
-  [0,0,0,2,0,0,0],
-  [0,0,1,1,0,0,0],
-  [0,1,2,2,0,0,0],
-  [1,2,1,2,2,0,0],
-];
+const c4State=[[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,2,0,0,0],[0,0,1,1,0,0,0],[0,1,2,2,0,0,0],[1,2,1,2,2,0,0]];
 const mc4=document.getElementById('mini-c4');
-for(let r=0;r<6;r++) for(let c=0;c<7;c++){
-  const d=document.createElement('div');
-  d.className='mini-disc '+['e','r','y'][c4State[r][c]];
-  mc4.appendChild(d);
-}
+for(let r=0;r<6;r++) for(let c=0;c<7;c++){ const d=document.createElement('div'); d.className='mini-disc '+['e','r','y'][c4State[r][c]]; mc4.appendChild(d); }
 
 // ── Mini Othello ──────────────────────────────────────────────────
-const othelloState=[
-  [0,0,0,0,0,0,0,0],
-  [0,0,0,0,0,0,0,0],
-  [0,0,0,2,1,0,0,0],
-  [0,0,2,2,2,1,0,0],
-  [0,0,1,2,1,1,0,0],
-  [0,0,0,1,2,0,0,0],
-  [0,0,0,0,0,0,0,0],
-  [0,0,0,0,0,0,0,0],
-];
+const othelloState=[[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,2,1,0,0,0],[0,0,2,2,2,1,0,0],[0,0,1,2,1,1,0,0],[0,0,0,1,2,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]];
 const mo=document.getElementById('mini-othello');
-for(let r=0;r<8;r++) for(let c=0;c<8;c++){
-  const sq=document.createElement('div');
-  sq.className='mini-othello-sq';
-  const v=othelloState[r][c];
-  if(v){
-    const d=document.createElement('div');
-    d.className='mini-o-disc '+(v===1?'b':'w');
-    sq.appendChild(d);
-  }
-  mo.appendChild(sq);
-}
+for(let r=0;r<8;r++) for(let c=0;c<8;c++){ const sq=document.createElement('div'); sq.className='mini-othello-sq'; const v=othelloState[r][c]; if(v){ const d=document.createElement('div'); d.className='mini-o-disc '+(v===1?'b':'w'); sq.appendChild(d); } mo.appendChild(sq); }
 
 // ── Mini Checkers ─────────────────────────────────────────────────
 const mck=document.getElementById('mini-checkers');
-for(let r=0;r<8;r++) for(let c=0;c<8;c++){
-  const sq=document.createElement('div');
-  const light=(r+c)%2===0;
-  sq.className='mini-csq '+(light?'cl':'cd');
-  if(!light){
-    let piece=null;
-    if(r<3) piece='w';
-    else if(r>4) piece='r';
-    if(piece){
-      const p=document.createElement('div');
-      p.className='mini-cp '+piece;
-      sq.appendChild(p);
-    }
-  }
-  mck.appendChild(sq);
-}
+for(let r=0;r<8;r++) for(let c=0;c<8;c++){ const sq=document.createElement('div'); const light=(r+c)%2===0; sq.className='mini-csq '+(light?'cl':'cd'); if(!light){ let piece=null; if(r<3) piece='w'; else if(r>4) piece='r'; if(piece){ const p=document.createElement('div'); p.className='mini-cp '+piece; sq.appendChild(p); } } mck.appendChild(sq); }
+
+// ── Mini Hex (SVG) ─────────────────────────────────────────────────
+(function(){
+  const svg=document.getElementById('mini-hex');
+  const N=5, S=13;
+  const W=Math.sqrt(3)*S, H=S*2;
+  const cells=[
+    [0,0,1],[0,1,0],[0,2,1],[0,3,0],[0,4,1],
+    [1,0,0],[1,1,2],[1,2,0],[1,3,2],[1,4,0],
+    [2,0,1],[2,1,0],[2,2,2],[2,3,1],[2,4,0],
+    [3,0,0],[3,1,2],[3,2,1],[3,3,0],[3,4,2],
+    [4,0,1],[4,1,0],[4,2,0],[4,3,1],[4,4,0],
+  ];
+  const colors={0:'#141e35',1:'#3a9fff',2:'#ff5533'};
+  const glows={1:'rgba(58,159,255,0.6)',2:'rgba(255,85,51,0.6)'};
+
+  let vw=0,vh=0;
+  cells.forEach(([r,c])=>{
+    const cx=W*(c+r*0.5)+S*1.4;
+    const cy=H*0.75*r+S*1.1;
+    vw=Math.max(vw,cx+S*1.4); vh=Math.max(vh,cy+S*1.2);
+  });
+  svg.setAttribute('viewBox',`0 0 ${vw} ${vh}`);
+
+  cells.forEach(([r,c,v])=>{
+    const cx=W*(c+r*0.5)+S*1.4;
+    const cy=H*0.75*r+S*1.1;
+    const pts=[];
+    for(let i=0;i<6;i++){ const a=Math.PI/180*(60*i-30); pts.push((cx+S*0.9*Math.cos(a)).toFixed(1)+','+(cy+S*0.9*Math.sin(a)).toFixed(1)); }
+    const hex=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    hex.setAttribute('points',pts.join(' '));
+    hex.setAttribute('fill',colors[v]);
+    hex.setAttribute('stroke', v>0?'rgba(255,255,255,0.15)':'#2a3a5a');
+    hex.setAttribute('stroke-width','1');
+    if(v>0) hex.setAttribute('filter',`drop-shadow(0 0 3px ${glows[v]})`);
+    svg.appendChild(hex);
+  });
+})();
 </script>
 </body>
 </html>
