@@ -525,8 +525,8 @@ function buildSVG(){
   }
 
   svg.addEventListener('click',e=>{
-    const hex=e.target.closest('.hex-cell');
-    if(!hex) return;
+    const hex=e.target;
+    if(!hex.dataset || hex.dataset.r===undefined) return;
     handleClick(parseInt(hex.dataset.r),parseInt(hex.dataset.c));
   });
 }
@@ -542,7 +542,7 @@ function renderBoard(winPath=[]){
       else if(v===RED) cls+='p2';
       else cls+= (!gameOver&&!thinking&&currentTurn===humanColor)?'empty hint':'empty';
       if(winSet.has(`${r},${c}`)) cls+=' win-path';
-      el.className=cls;
+      el.setAttribute('class',cls);
     }
   }
   updateSidebar();
@@ -584,8 +584,8 @@ function placeStone(r,c,player,isHuman){
   board[r][c]=player;
   // animate
   const el=cellEls[`${r},${c}`];
-  el.className='hex-cell '+(player===BLUE?'p1':'p2')+' placing';
-  setTimeout(()=>{ if(el) el.classList.remove('placing'); },300);
+  el.setAttribute('class','hex-cell '+(player===BLUE?'p1':'p2')+' placing');
+  setTimeout(()=>{ if(el) el.setAttribute('class','hex-cell '+(player===BLUE?'p1':'p2')); },300);
 
   if(checkWin(board,player)){
     gameOver=true;
