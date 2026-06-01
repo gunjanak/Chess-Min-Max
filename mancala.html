@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mancala — Kalah AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0a04;
+    --surface: #1a1208;
+    --board-wood: #8B4513;
+    --board-dark: #5C2E0A;
+    --board-light: #A0522D;
+    --board-shine: #C8733A;
+    --pit-bg: #2a1a08;
+    --pit-hover: #3a2510;
+    --store-bg: #1e1005;
+    --seed-colors: #e8c84a, #e85a2a, #4ae88a, #4a8ae8, #e84a8a, #a04ae8;
+    --text: #e8d8b8;
+    --text-muted: #7a6040;
+    --accent: #e8a030;
+    --accent-dim: #5a3a10;
+    --p1: #4a9fff;
+    --p2: #ff6a3a;
+    --border: #3a2010;
+    --highlight: rgba(232,160,48,0.35);
+    --valid: rgba(232,160,48,0.2);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 30% 20%, rgba(139,69,19,0.12) 0%, transparent 55%),
+      radial-gradient(ellipse at 70% 80%, rgba(232,160,48,0.06) 0%, transparent 55%);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding: 28px 16px 48px;
+    gap: 20px;
+  }
+
+  header { text-align: center; }
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 2.6rem; font-weight: 700; letter-spacing: 0.1em;
+    color: var(--accent);
+    filter: drop-shadow(0 0 20px rgba(232,160,48,0.4));
+  }
+  .subtitle { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); margin-top: 5px; }
+  .badges { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+  .badge {
+    padding: 4px 12px; border: 1px solid var(--border); border-radius: 20px;
+    font-size: 0.56rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); background: rgba(232,160,48,0.06);
+  }
+
+  /* Score bar */
+  .scorebar {
+    display: flex; width: 100%; max-width: 660px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+  }
+  .score-half {
+    flex: 1; padding: 12px 16px;
+    display: flex; align-items: center; gap: 10px;
+    transition: background 0.3s;
+  }
+  .score-half.active { background: rgba(232,160,48,0.05); }
+  .score-half:first-child { border-right: 1px solid var(--border); }
+  .player-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; transition: transform 0.3s; }
+  .player-dot.p1 { background: var(--p1); box-shadow: 0 0 10px rgba(74,159,255,0.5); }
+  .player-dot.p2 { background: var(--p2); box-shadow: 0 0 10px rgba(255,106,58,0.5); }
+  .score-half.active .player-dot { transform: scale(1.3); }
+  .score-info { flex: 1; }
+  .score-name { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); }
+  .score-seeds { font-size: 1.5rem; font-weight: 500; color: var(--text); line-height: 1.1; }
+  .score-wins  { font-size: 0.58rem; color: var(--text-muted); }
+  .turn-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent); opacity: 0;
+    box-shadow: 0 0 8px var(--accent);
+    animation: blink 1s ease-in-out infinite; transition: opacity 0.3s;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+  .score-half.active .turn-dot { opacity: 1; }
+
+  /* Board */
+  .board-outer {
+    width: 100%; max-width: 660px;
+    background: linear-gradient(145deg, var(--board-light), var(--board-dark));
+    border: 3px solid var(--board-dark);
+    border-radius: 80px;
+    padding: 14px;
+    box-shadow:
+      0 0 0 2px var(--board-shine),
+      0 0 0 4px var(--board-dark),
+      0 24px 60px rgba(0,0,0,0.7),
+      inset 0 2px 4px rgba(255,255,255,0.08),
+      inset 0 -2px 4px rgba(0,0,0,0.4);
+  }
+  .board-inner {
+    background: linear-gradient(145deg, var(--board-dark), #3a1a08);
+    border-radius: 66px;
+    padding: 12px;
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+  }
+
+  /* Store (Mancala) */
+  .store {
+    width: 80px; flex-shrink: 0;
+    background: var(--store-bg);
+    border-radius: 50px;
+    border: 2px solid var(--border);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 6px;
+    padding: 10px 6px;
+    box-shadow: inset 0 3px 10px rgba(0,0,0,0.6);
+    position: relative;
+  }
+  .store-label {
+    font-size: 0.52rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-muted); writing-mode: vertical-rl;
+    position: absolute; top: 10px;
+  }
+  .store-count {
+    font-family: 'Cinzel', serif;
+    font-size: 1.8rem; font-weight: 700; color: var(--accent);
+    text-shadow: 0 0 12px rgba(232,160,48,0.4);
+  }
+  .store.p1-store { border-color: rgba(74,159,255,0.3); }
+  .store.p2-store { border-color: rgba(255,106,58,0.3); }
+
+  /* Pits grid */
+  .pits-area {
+    flex: 1; display: flex; flex-direction: column; gap: 10px;
+  }
+  .pits-row {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
+  }
+  .pit {
+    aspect-ratio: 1;
+    background: var(--pit-bg);
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 3px;
+    cursor: default;
+    position: relative;
+    transition: background 0.15s, border-color 0.15s, transform 0.12s;
+    box-shadow: inset 0 3px 8px rgba(0,0,0,0.5), inset 0 -1px 2px rgba(255,255,255,0.04);
+    overflow: hidden;
+  }
+  .pit.valid {
+    background: var(--valid);
+    border-color: rgba(232,160,48,0.4);
+    cursor: pointer;
+  }
+  .pit.valid:hover {
+    background: var(--highlight);
+    border-color: var(--accent);
+    transform: scale(1.06);
+    box-shadow: 0 0 14px rgba(232,160,48,0.3), inset 0 3px 8px rgba(0,0,0,0.4);
+  }
+  .pit.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 16px rgba(232,160,48,0.5), inset 0 3px 8px rgba(0,0,0,0.4);
+  }
+  .pit.empty-pit { opacity: 0.5; }
+  .pit.ai-row { cursor: default !important; }
+
+  .pit-count {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem; font-weight: 700;
+    color: var(--accent); line-height: 1;
+    text-shadow: 0 0 8px rgba(232,160,48,0.4);
+    z-index: 2;
+  }
+  .pit-count.zero { color: var(--text-muted); opacity: 0.5; }
+
+  /* Seeds display */
+  .seeds-wrap {
+    display: flex; flex-wrap: wrap; gap: 2px;
+    justify-content: center; align-items: center;
+    padding: 4px; z-index: 2;
+    max-width: 90%; max-height: 70%;
+    position: absolute; bottom: 6px;
+  }
+  .seed {
+    width: 7px; height: 7px; border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+  /* Seed colors cycling */
+  .seed:nth-child(6n+1) { background: #e8c84a; }
+  .seed:nth-child(6n+2) { background: #e85a2a; }
+  .seed:nth-child(6n+3) { background: #4ae88a; }
+  .seed:nth-child(6n+4) { background: #4a8ae8; }
+  .seed:nth-child(6n+5) { background: #e84a8a; }
+  .seed:nth-child(6n+6) { background: #a04ae8; }
+
+  /* Store seeds */
+  .store-seeds {
+    display: flex; flex-wrap: wrap; gap: 3px;
+    justify-content: center; align-items: center;
+    padding: 8px 6px; max-height: 70%;
+  }
+  .store-seed {
+    width: 8px; height: 8px; border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+  .store-seed:nth-child(6n+1) { background: #e8c84a; }
+  .store-seed:nth-child(6n+2) { background: #e85a2a; }
+  .store-seed:nth-child(6n+3) { background: #4ae88a; }
+  .store-seed:nth-child(6n+4) { background: #4a8ae8; }
+  .store-seed:nth-child(6n+5) { background: #e84a8a; }
+  .store-seed:nth-child(6n+6) { background: #a04ae8; }
+
+  /* Row labels */
+  .row-label {
+    font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-muted); text-align: center; padding: 2px 0;
+  }
+  .row-label.p1c { color: rgba(74,159,255,0.7); }
+  .row-label.p2c { color: rgba(255,106,58,0.7); }
+
+  /* Extra-turn indicator */
+  .extra-turn-badge {
+    display: none;
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--accent); color: #0e0a04;
+    font-family: 'Cinzel', serif; font-size: 0.8rem; font-weight: 700;
+    padding: 8px 20px; border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(232,160,48,0.5);
+    z-index: 50; letter-spacing: 0.08em;
+    animation: slideDown 0.3s ease-out;
+  }
+  .extra-turn-badge.show { display: block; }
+  @keyframes slideDown { from{transform:translateX(-50%) translateY(-20px);opacity:0} to{transform:translateX(-50%) translateY(0);opacity:1} }
+
+  /* Status */
+  .status-bar {
+    width: 100%; max-width: 660px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 11px 18px;
+    font-size: 0.78rem; text-align: center; min-height: 42px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text);
+  }
+  .status-bar.thinking { color: var(--p2); animation: blink 0.8s ease-in-out infinite; }
+  .status-bar.win   { color: #60e060; }
+  .status-bar.lose  { color: #ff6060; }
+  .status-bar.draw  { color: var(--text-muted); }
+  .status-bar.extra { color: var(--accent); }
+
+  /* Controls */
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; width: 100%; max-width: 660px; }
+  .ctrl-group {
+    flex: 1; min-width: 130px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+  }
+  .ctrl-label { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-muted); margin-bottom: 7px; }
+  select, input[type=range] {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem; padding: 6px 8px; border-radius: 6px;
+    outline: none; appearance: none;
+  }
+  input[type=range] { padding: 2px 0; accent-color: var(--accent); }
+  .depth-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .time-val  { font-size: 0.72rem; color: var(--p2); }
+  .btn {
+    flex: 1; min-width: 110px; padding: 12px;
+    background: transparent; border: 1px solid var(--accent-dim);
+    color: var(--accent); font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase;
+    border-radius: 10px; cursor: pointer; transition: all 0.15s;
+  }
+  .btn:hover { background: rgba(232,160,48,0.08); border-color: var(--accent); }
+
+  /* Rules */
+  .rules {
+    width: 100%; max-width: 660px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 18px;
+    font-size: 0.66rem; color: var(--text-muted); line-height: 1.85;
+  }
+  .rules strong { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="extra-turn-badge" id="extra-badge">🎉 Extra Turn!</div>
+
+<header>
+  <h1>Mancala</h1>
+  <p class="subtitle">Kalah — Strategic Seed Sowing</p>
+  <div class="badges">
+    <span class="badge">Negamax</span>
+    <span class="badge">Alpha-Beta</span>
+    <span class="badge">Iterative Deepening</span>
+    <span class="badge">Transposition Tables</span>
+    <span class="badge">Extra-Turn Ordering</span>
+  </div>
+</header>
+
+<div class="scorebar">
+  <div class="score-half" id="sh-p1">
+    <div class="player-dot p1"></div>
+    <div class="score-info">
+      <div class="score-name">You — South</div>
+      <div class="score-seeds" id="sc-p1">0</div>
+      <div class="score-wins" id="sw-p1">0 wins</div>
+    </div>
+    <div class="turn-dot"></div>
+  </div>
+  <div class="score-half" id="sh-p2">
+    <div class="player-dot p2"></div>
+    <div class="score-info">
+      <div class="score-name">AI — North</div>
+      <div class="score-seeds" id="sc-p2">0</div>
+      <div class="score-wins" id="sw-p2">0 wins</div>
+    </div>
+    <div class="turn-dot"></div>
+  </div>
+</div>
+
+<div class="board-outer">
+  <div class="board-inner">
+    <!-- P2 store (left) -->
+    <div class="store p2-store" id="store-p2">
+      <div class="store-label">AI Store</div>
+      <div class="store-count" id="store-count-p2">0</div>
+      <div class="store-seeds" id="store-seeds-p2"></div>
+    </div>
+
+    <!-- Pits -->
+    <div class="pits-area">
+      <div class="row-label p2c">← AI (North) — moves right to left</div>
+      <div class="pits-row" id="row-p2"></div>
+      <div class="pits-row" id="row-p1"></div>
+      <div class="row-label p1c">You (South) — moves left to right →</div>
+    </div>
+
+    <!-- P1 store (right) -->
+    <div class="store p1-store" id="store-p1">
+      <div class="store-label">Your Store</div>
+      <div class="store-count" id="store-count-p1">0</div>
+      <div class="store-seeds" id="store-seeds-p1"></div>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar" id="status">Your turn — choose a pit</div>
+
+<div class="controls">
+  <div class="ctrl-group">
+    <div class="ctrl-label">Seeds per pit</div>
+    <select id="seeds-sel" onchange="newGame()">
+      <option value="4" selected>4 seeds (Standard)</option>
+      <option value="6">6 seeds (Deep)</option>
+      <option value="3">3 seeds (Fast)</option>
+    </select>
+  </div>
+  <div class="ctrl-group">
+    <div class="ctrl-label">AI Time Budget</div>
+    <div class="depth-row">
+      <span style="font-size:0.6rem;color:var(--text-muted)">Fast</span>
+      <span class="time-val" id="time-label">2s</span>
+      <span style="font-size:0.6rem;color:var(--text-muted)">Strong</span>
+    </div>
+    <input type="range" min="1" max="6" value="2" id="time-sel"
+           oninput="document.getElementById('time-label').textContent=this.value+'s'">
+  </div>
+  <button class="btn" onclick="newGame()">New Game</button>
+</div>
+
+<div class="rules">
+  <strong>Rules:</strong> On your turn, pick any of your pits (south row) with seeds. Seeds are sown counter-clockwise one by one into each pit and your store — but skip the opponent's store.
+  <strong>Extra turn:</strong> If your last seed lands in your store, you get another turn.
+  <strong>Capture:</strong> If your last seed lands in an empty pit on your side, you capture those seeds plus all seeds in the opposite pit.
+  <strong>Game end:</strong> When all pits on one side are empty. Remaining seeds go to that player's store. Most seeds wins.
+</div>
+
+<script>
+// ── Board layout ──────────────────────────────────────────────────
+// Indices 0-5:  P1 pits (south, left→right)
+// Index   6:    P1 store
+// Indices 7-12: P2 pits (north, left→right internally, displayed right→left)
+// Index   13:   P2 store
+
+const P1=0, P2=1;
+const P1_PITS=[0,1,2,3,4,5], P1_STORE=6;
+const P2_PITS=[7,8,9,10,11,12], P2_STORE=13;
+const OPPOSITE=[12,11,10,9,8,7,null,0,1,2,3,4,5]; // opposite pit for capture
+
+let state, currentPlayer, gameOver, thinking;
+let wins=[0,0];
+let transTable={};
+
+function makeState(seeds){
+  const s=Array(14).fill(seeds);
+  s[P1_STORE]=0; s[P2_STORE]=0;
+  return s;
+}
+
+function cloneState(s){ return [...s]; }
+
+// ── Move execution ────────────────────────────────────────────────
+// Returns {newState, extraTurn, captured}
+function applyMove(s, pit, player){
+  const ns=cloneState(s);
+  let seeds=ns[pit]; ns[pit]=0;
+  let idx=pit;
+  const opponentStore= player===P1 ? P2_STORE : P1_STORE;
+
+  while(seeds>0){
+    idx=(idx+1)%14;
+    if(idx===opponentStore) continue; // skip opponent store
+    ns[idx]++;
+    seeds--;
+  }
+
+  let extraTurn=false;
+  let captured=false;
+  const myStore= player===P1 ? P1_STORE : P2_STORE;
+  const myPits = player===P1 ? P1_PITS : P2_PITS;
+
+  // Extra turn: last seed in own store
+  if(idx===myStore) extraTurn=true;
+
+  // Capture: last seed in own empty pit (just became 1), opposite has seeds
+  if(!extraTurn && myPits.includes(idx) && ns[idx]===1){
+    const opp=OPPOSITE[idx];
+    if(opp!==null && ns[opp]>0){
+      ns[myStore]+=ns[opp]+1;
+      ns[idx]=0; ns[opp]=0;
+      captured=true;
+    }
+  }
+
+  return {ns, extraTurn, captured};
+}
+
+function getValidMoves(s, player){
+  const pits = player===P1 ? P1_PITS : P2_PITS;
+  // Move ordering: extra-turn moves first, then captures, then rest
+  const moves=pits.filter(p=>s[p]>0);
+
+  moves.sort((a,b)=>{
+    const ra=applyMove(s,a,player);
+    const rb=applyMove(s,b,player);
+    if(ra.extraTurn && !rb.extraTurn) return -1;
+    if(!ra.extraTurn && rb.extraTurn) return 1;
+    if(ra.captured && !rb.captured) return -1;
+    if(!ra.captured && rb.captured) return 1;
+    return s[b]-s[a]; // more seeds first
+  });
+  return moves;
+}
+
+function isGameOver(s){
+  const p1empty=P1_PITS.every(p=>s[p]===0);
+  const p2empty=P2_PITS.every(p=>s[p]===0);
+  return p1empty||p2empty;
+}
+
+function finalizeState(s){
+  const ns=cloneState(s);
+  P1_PITS.forEach(p=>{ ns[P1_STORE]+=ns[p]; ns[p]=0; });
+  P2_PITS.forEach(p=>{ ns[P2_STORE]+=ns[p]; ns[p]=0; });
+  return ns;
+}
+
+// ── Evaluation ────────────────────────────────────────────────────
+function evaluate(s, forPlayer){
+  if(isGameOver(s)){
+    const fs=finalizeState(s);
+    const diff = forPlayer===P1
+      ? fs[P1_STORE]-fs[P2_STORE]
+      : fs[P2_STORE]-fs[P1_STORE];
+    return diff>0?100000+diff:diff<0?-100000+diff:0;
+  }
+  const myStore   = forPlayer===P1 ? P1_STORE : P2_STORE;
+  const oppStore  = forPlayer===P1 ? P2_STORE : P1_STORE;
+  const myPits    = forPlayer===P1 ? P1_PITS  : P2_PITS;
+  const oppPits   = forPlayer===P1 ? P2_PITS  : P1_PITS;
+
+  // Store diff (primary)
+  const storeDiff = (s[myStore]-s[oppStore])*3;
+
+  // Extra-turn potential
+  let extraBonus=0;
+  myPits.forEach(p=>{ if(s[p]>0){ const land=(p+s[p])%14; if(land===myStore) extraBonus+=4; } });
+
+  // Capture potential
+  let capBonus=0;
+  myPits.forEach(p=>{
+    if(s[p]>0){
+      const {ns,captured}=applyMove(s,p,forPlayer);
+      if(captured) capBonus+=3;
+    }
+  });
+
+  // Seed count on my side vs opponent side
+  const mySideSeeds  = myPits.reduce((a,p)=>a+s[p],0);
+  const oppSideSeeds = oppPits.reduce((a,p)=>a+s[p],0);
+
+  return storeDiff + extraBonus + capBonus + (mySideSeeds-oppSideSeeds)*0.5;
+}
+
+// ── Zobrist hashing for transposition table ───────────────────────
+const ZOBRIST=Array.from({length:14},()=>Array.from({length:50},()=>Math.floor(Math.random()*2**32)));
+let ZTURN=[Math.floor(Math.random()*2**32), Math.floor(Math.random()*2**32)];
+
+function zobristHash(s, player){
+  let h=ZTURN[player];
+  for(let i=0;i<14;i++) h^=ZOBRIST[i][Math.min(s[i],49)];
+  return h;
+}
+
+// ── Negamax + Alpha-Beta + Transposition Table ────────────────────
+function negamax(s, depth, alpha, beta, player, startTime, budgetMs){
+  if(Date.now()-startTime > budgetMs) return {score:evaluate(s,player), timeout:true};
+
+  const hash=zobristHash(s,player);
+  if(transTable[hash] && transTable[hash].depth>=depth){
+    const tt=transTable[hash];
+    if(tt.flag==='exact') return {score:tt.score};
+    if(tt.flag==='lower') alpha=Math.max(alpha,tt.score);
+    if(tt.flag==='upper') beta=Math.min(beta,tt.score);
+    if(alpha>=beta) return {score:tt.score};
+  }
+
+  if(isGameOver(s)){
+    const fs=finalizeState(s);
+    const diff = player===P1
+      ? fs[P1_STORE]-fs[P2_STORE]
+      : fs[P2_STORE]-fs[P1_STORE];
+    return {score: diff>0?100000+depth:diff<0?-100000-depth:0};
+  }
+
+  const moves=getValidMoves(s,player);
+  if(depth===0 || moves.length===0) return {score:evaluate(s,player)};
+
+  const origAlpha=alpha;
+  let bestScore=-Infinity, bestMove=moves[0];
+  let timedOut=false;
+
+  for(const pit of moves){
+    const {ns, extraTurn}=applyMove(s,pit,player);
+    let score;
+
+    if(extraTurn){
+      // Same player moves again — no sign flip in negamax
+      const res=negamax(ns, depth-1, alpha, beta, player, startTime, budgetMs);
+      score=res.score;
+      if(res.timeout){ timedOut=true; break; }
+    } else {
+      const opp=player===P1?P2:P1;
+      const res=negamax(ns, depth-1, -beta, -alpha, opp, startTime, budgetMs);
+      score=-res.score;
+      if(res.timeout){ timedOut=true; break; }
+    }
+
+    if(score>bestScore){ bestScore=score; bestMove=pit; }
+    alpha=Math.max(alpha,score);
+    if(alpha>=beta) break;
+  }
+
+  if(!timedOut){
+    const flag = bestScore<=origAlpha?'upper':bestScore>=beta?'lower':'exact';
+    transTable[hash]={score:bestScore, depth, flag};
+  }
+
+  return {score:bestScore, move:bestMove, timeout:timedOut};
+}
+
+// ── Iterative Deepening ───────────────────────────────────────────
+function getBestMove(s, player, budgetMs){
+  const startTime=Date.now();
+  transTable={};
+  const moves=getValidMoves(s,player);
+  if(!moves.length) return null;
+  let bestMove=moves[0];
+
+  for(let depth=1; depth<=60; depth++){
+    const res=negamax(s, depth, -Infinity, Infinity, player, startTime, budgetMs);
+    if(!res.timeout && res.move!==undefined) bestMove=res.move;
+    if(res.timeout) break;
+    if(Math.abs(res.score)>=100000) break; // forced win found
+    if(Date.now()-startTime > budgetMs*0.9) break;
+  }
+  return bestMove;
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function renderBoard(){
+  const validMoves = (!gameOver && !thinking && currentPlayer===P1)
+    ? new Set(getValidMoves(state, P1)) : new Set();
+
+  // P1 row (south) — left to right (pits 0-5)
+  const rowP1=document.getElementById('row-p1');
+  rowP1.innerHTML='';
+  P1_PITS.forEach(p=>{
+    rowP1.appendChild(makePitEl(p, state[p], validMoves.has(p), false));
+  });
+
+  // P2 row (north) — displayed right to left (pit 12..7)
+  const rowP2=document.getElementById('row-p2');
+  rowP2.innerHTML='';
+  [...P2_PITS].reverse().forEach(p=>{
+    rowP2.appendChild(makePitEl(p, state[p], false, true));
+  });
+
+  // Stores
+  renderStore('p1', state[P1_STORE]);
+  renderStore('p2', state[P2_STORE]);
+
+  // Scorebar
+  document.getElementById('sc-p1').textContent=state[P1_STORE];
+  document.getElementById('sc-p2').textContent=state[P2_STORE];
+  document.getElementById('sw-p1').textContent=wins[P1]+' win'+(wins[P1]!==1?'s':'');
+  document.getElementById('sw-p2').textContent=wins[P2]+' win'+(wins[P2]!==1?'s':'');
+  document.getElementById('sh-p1').classList.toggle('active', currentPlayer===P1 && !gameOver);
+  document.getElementById('sh-p2').classList.toggle('active', currentPlayer===P2 && !gameOver);
+}
+
+function makePitEl(idx, count, valid, aiRow){
+  const div=document.createElement('div');
+  let cls='pit'+(valid?' valid':'')+(count===0?' empty-pit':'')+(aiRow?' ai-row':'');
+  div.className=cls;
+  div.dataset.idx=idx;
+
+  // Count
+  const countEl=document.createElement('div');
+  countEl.className='pit-count'+(count===0?' zero':'');
+  countEl.textContent=count;
+  div.appendChild(countEl);
+
+  // Seeds visual (show up to 24)
+  if(count>0){
+    const wrap=document.createElement('div');
+    wrap.className='seeds-wrap';
+    const show=Math.min(count,24);
+    for(let i=0;i<show;i++){
+      const s=document.createElement('div');
+      s.className='seed';
+      wrap.appendChild(s);
+    }
+    div.appendChild(wrap);
+  }
+  return div;
+}
+
+function renderStore(player, count){
+  document.getElementById(`store-count-${player}`).textContent=count;
+  const wrap=document.getElementById(`store-seeds-${player}`);
+  wrap.innerHTML='';
+  const show=Math.min(count,36);
+  for(let i=0;i<show;i++){
+    const s=document.createElement('div');
+    s.className='store-seed';
+    wrap.appendChild(s);
+  }
+}
+
+function setStatus(msg, cls=''){
+  const el=document.getElementById('status');
+  el.textContent=msg; el.className='status-bar'+(cls?' '+cls:'');
+}
+
+function showExtraTurn(show){
+  document.getElementById('extra-badge').className='extra-turn-badge'+(show?' show':'');
+}
+
+// ── Game logic ────────────────────────────────────────────────────
+function handlePitClick(idx){
+  if(gameOver||thinking||currentPlayer!==P1) return;
+  const valid=getValidMoves(state,P1);
+  if(!valid.includes(idx)) return;
+  executeMove(idx, P1);
+}
+
+function executeMove(pit, player){
+  const {ns, extraTurn}=applyMove(state, pit, player);
+  state=ns;
+
+  if(isGameOver(state)){
+    state=finalizeState(state);
+    gameOver=true;
+    renderBoard();
+    const p1=state[P1_STORE], p2=state[P2_STORE];
+    if(p1>p2){      wins[P1]++; renderBoard(); setStatus(`You win! ${p1} – ${p2} 🎉`,'win'); }
+    else if(p2>p1){ wins[P2]++; renderBoard(); setStatus(`AI wins! ${p2} – ${p1}`,'lose'); }
+    else{           renderBoard(); setStatus(`Draw! ${p1} – ${p2}`,'draw'); }
+    return;
+  }
+
+  if(extraTurn){
+    showExtraTurn(true);
+    setTimeout(()=>showExtraTurn(false), 1200);
+    renderBoard();
+    if(player===P1){
+      setStatus('Extra turn! Go again →','extra');
+    } else {
+      setStatus('AI gets an extra turn…','thinking');
+      thinking=true;
+      setTimeout(doAIMove, 700);
+    }
+  } else {
+    currentPlayer = player===P1 ? P2 : P1;
+    renderBoard();
+    if(currentPlayer===P2){
+      setStatus('AI thinking…','thinking');
+      thinking=true;
+      setTimeout(doAIMove, 80);
+    } else {
+      setStatus('Your turn — choose a pit');
+    }
+  }
+}
+
+function doAIMove(){
+  const budget=parseInt(document.getElementById('time-sel').value)*1000;
+  const move=getBestMove(state, P2, budget);
+  thinking=false;
+  if(move===null){
+    gameOver=true; setStatus('AI has no moves — you win!','win'); return;
+  }
+  executeMove(move, P2);
+}
+
+// ── Board click delegation ────────────────────────────────────────
+function initEvents(){
+  document.getElementById('row-p1').addEventListener('click',e=>{
+    const pit=e.target.closest('.pit');
+    if(!pit) return;
+    handlePitClick(parseInt(pit.dataset.idx));
+  });
+}
+
+// ── New game ──────────────────────────────────────────────────────
+function newGame(){
+  const seeds=parseInt(document.getElementById('seeds-sel').value);
+  state=makeState(seeds);
+  currentPlayer=P1;
+  gameOver=false; thinking=false;
+  transTable={};
+  renderBoard();
+  setStatus('Your turn — choose a pit');
+  showExtraTurn(false);
+}
+
+initEvents();
+newGame();
+</script>
+</body>
+</html>
