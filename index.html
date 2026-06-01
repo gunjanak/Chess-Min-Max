@@ -60,9 +60,9 @@
   }
   .cards-bottom {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 22px;
-    width: 100%; max-width: 680px;
+    width: 100%; max-width: 1020px;
   }
 
   /* ── Card ── */
@@ -79,6 +79,7 @@
   .card.othello:hover  { border-color: #4dff91; box-shadow: 0 24px 60px rgba(77,255,145,0.13); }
   .card.checkers:hover { border-color: #e8902a; box-shadow: 0 24px 60px rgba(232,144,42,0.14); }
   .card.hex:hover      { border-color: #7ab8ff; box-shadow: 0 24px 60px rgba(58,159,255,0.18); }
+  .card.mancala:hover  { border-color: #e8a030; box-shadow: 0 24px 60px rgba(232,160,48,0.16); }
 
   /* ── Preview ── */
   .preview {
@@ -91,6 +92,7 @@
   .othello .preview  { background: linear-gradient(145deg,#060d08,#0a1a10); }
   .checkers .preview { background: linear-gradient(145deg,#12080a,#1e100c); }
   .hex     .preview  { background: linear-gradient(145deg,#080c18,#0e1628); }
+  .mancala .preview  { background: linear-gradient(145deg,#0e0a04,#1a1208); }
 
   .orb { position:absolute; border-radius:50%; filter:blur(44px); opacity:0.22; pointer-events:none; }
 
@@ -125,6 +127,28 @@
   .mini-hex-wrap { position:relative; width:130px; height:100px; }
   .mini-hex-wrap svg { width:100%; height:100%; overflow:visible; }
 
+  /* Mini Mancala */
+  .mini-mancala { display:flex; align-items:center; gap:6px; }
+  .mini-store {
+    width:28px; height:80px; background:#1e1005; border-radius:20px;
+    border:1px solid #3a2010; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:2px; padding:4px 2px;
+  }
+  .mini-pits { display:flex; flex-direction:column; gap:5px; }
+  .mini-pits-row { display:flex; gap:5px; }
+  .mini-pit {
+    width:22px; height:22px; border-radius:50%; background:#2a1a08;
+    border:1px solid #3a2010; display:flex; align-items:center; justify-content:center;
+  }
+  .mini-seed-sm { width:5px; height:5px; border-radius:50%; }
+  .mini-seed-sm:nth-child(1){background:#e8c84a;} .mini-seed-sm:nth-child(2){background:#e85a2a;}
+  .mini-seed-sm:nth-child(3){background:#4ae88a;} .mini-seed-sm:nth-child(4){background:#4a8ae8;}
+  .mini-store-seed { width:6px; height:6px; border-radius:50%; }
+  .mini-store-seed:nth-child(1){background:#e8c84a;} .mini-store-seed:nth-child(2){background:#e85a2a;}
+  .mini-store-seed:nth-child(3){background:#4ae88a;} .mini-store-seed:nth-child(4){background:#4a8ae8;}
+  .mini-store-seed:nth-child(5){background:#e84a8a;} .mini-store-seed:nth-child(6){background:#a04ae8;}
+  .mini-store-seed:nth-child(7){background:#e8c84a;} .mini-store-seed:nth-child(8){background:#e85a2a;}
+
   /* ── Card body ── */
   .card-body { padding:16px 18px 20px; flex:1; display:flex; flex-direction:column; gap:8px; }
   .card-title { font-family:'Righteous',cursive; font-size:1.25rem; letter-spacing:0.06em; }
@@ -133,6 +157,7 @@
   .othello  .card-title { color:#4dff91; }
   .checkers .card-title { color:#e8902a; }
   .hex      .card-title { color:#7ab8ff; }
+  .mancala  .card-title { color:#e8a030; }
 
   .card-desc { font-size:0.65rem; color:var(--text-muted); line-height:1.75; flex:1; }
 
@@ -143,6 +168,7 @@
   .othello  .tag.hl { border-color:#1a5c35; color:#4dff91; background:rgba(77,255,145,0.07); }
   .checkers .tag.hl { border-color:#7a4010; color:#e8902a; background:rgba(232,144,42,0.07); }
   .hex      .tag.hl { border-color:#1a3a6a; color:#7ab8ff; background:rgba(58,159,255,0.07); }
+  .mancala  .tag.hl { border-color:#5a3a10; color:#e8a030; background:rgba(232,160,48,0.07); }
 
   .play-btn {
     margin-top:10px; padding:10px; border-radius:10px; border:none;
@@ -157,17 +183,19 @@
   .othello  .play-btn { background:linear-gradient(135deg,#1a7a40,#4dff91); color:#030d06; }
   .checkers .play-btn { background:linear-gradient(135deg,#8b3010,#e8902a); color:#120408; }
   .hex      .play-btn { background:linear-gradient(135deg,#1a3a8a,#7ab8ff); color:#04080f; }
+  .mancala  .play-btn { background:linear-gradient(135deg,#5a2e08,#e8a030); color:#0e0a04; }
 
   /* ── Footer ── */
   footer { font-size:0.6rem; color:var(--text-muted); letter-spacing:0.1em; text-align:center; opacity:0.55; }
 
   /* Responsive */
   @media(max-width:740px){
-    .cards-top  { grid-template-columns:1fr; max-width:360px; }
+    .cards-top    { grid-template-columns:1fr; max-width:360px; }
     .cards-bottom { grid-template-columns:1fr; max-width:360px; }
   }
   @media(min-width:741px) and (max-width:960px){
-    .cards-top { grid-template-columns:repeat(2,1fr); }
+    .cards-top    { grid-template-columns:repeat(2,1fr); }
+    .cards-bottom { grid-template-columns:repeat(2,1fr); max-width:680px; }
   }
 </style>
 </head>
@@ -175,10 +203,11 @@
 
 <header>
   <div class="logo">Arcade</div>
-  <p class="tagline">Five classic strategy games vs AI</p>
+  <p class="tagline">Six classic strategy games vs AI</p>
   <div class="badges">
     <span class="badge">Minimax · Alpha-Beta</span>
     <span class="badge purple">Negamax · Iterative Deepening</span>
+    <span class="badge" style="color:#e8a030;background:rgba(232,160,48,0.06);border-color:rgba(232,160,48,0.2)">Transposition Tables</span>
   </div>
 </header>
 
@@ -280,6 +309,24 @@
     </div>
   </a>
 
+  <!-- Mancala -->
+  <a class="card mancala" href="mancala.html">
+    <div class="preview">
+      <div class="orb" style="width:100px;height:100px;background:#e8a030;bottom:-16px;left:-16px;"></div>
+      <div class="mini-mancala" id="mini-mancala"></div>
+    </div>
+    <div class="card-body">
+      <div class="card-title">Mancala</div>
+      <p class="card-desc">Sow seeds around the board, earn extra turns, and capture your opponent's pits. Ancient strategy, modern AI.</p>
+      <div class="card-tags">
+        <span class="tag hl">Negamax</span>
+        <span class="tag hl">Trans. Tables</span>
+        <span class="tag">Iter. Deepening</span>
+      </div>
+      <span class="play-btn">Play Mancala →</span>
+    </div>
+  </a>
+
 </div>
 
 <footer>All games run entirely in your browser — no server, no data collected.</footer>
@@ -346,6 +393,57 @@ for(let r=0;r<8;r++) for(let c=0;c<8;c++){ const sq=document.createElement('div'
     if(v>0) hex.setAttribute('filter',`drop-shadow(0 0 3px ${glows[v]})`);
     svg.appendChild(hex);
   });
+})();
+
+// ── Mini Mancala ──────────────────────────────────────────────────
+(function(){
+  const wrap = document.getElementById('mini-mancala');
+  if(!wrap) return;
+
+  // Sample mid-game state: [p1 pits 0-5, p1store, p2 pits 7-12, p2store]
+  const pits1 = [0,3,5,2,4,1];
+  const pits2 = [2,0,3,1,4,2];
+  const store1 = 10, store2 = 8;
+
+  // P2 store (left)
+  const s2 = document.createElement('div');
+  s2.className = 'mini-store';
+  for(let i=0;i<Math.min(store2,8);i++){ const d=document.createElement('div'); d.className='mini-store-seed'; s2.appendChild(d); }
+  wrap.appendChild(s2);
+
+  // Pits
+  const pitsDiv = document.createElement('div');
+  pitsDiv.className = 'mini-pits';
+
+  // P2 row (reversed)
+  const row2 = document.createElement('div');
+  row2.className = 'mini-pits-row';
+  [...pits2].reverse().forEach(count => {
+    const pit = document.createElement('div');
+    pit.className = 'mini-pit';
+    for(let i=0;i<Math.min(count,4);i++){ const s=document.createElement('div'); s.className='mini-seed-sm'; pit.appendChild(s); }
+    row2.appendChild(pit);
+  });
+
+  // P1 row
+  const row1 = document.createElement('div');
+  row1.className = 'mini-pits-row';
+  pits1.forEach(count => {
+    const pit = document.createElement('div');
+    pit.className = 'mini-pit';
+    for(let i=0;i<Math.min(count,4);i++){ const s=document.createElement('div'); s.className='mini-seed-sm'; pit.appendChild(s); }
+    row1.appendChild(pit);
+  });
+
+  pitsDiv.appendChild(row2);
+  pitsDiv.appendChild(row1);
+  wrap.appendChild(pitsDiv);
+
+  // P1 store (right)
+  const s1 = document.createElement('div');
+  s1.className = 'mini-store';
+  for(let i=0;i<Math.min(store1,8);i++){ const d=document.createElement('div'); d.className='mini-store-seed'; s1.appendChild(d); }
+  wrap.appendChild(s1);
 })();
 </script>
 </body>
