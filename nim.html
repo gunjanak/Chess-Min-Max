@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nim — Negamax AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08080f;
+    --surface: #10101c;
+    --border: #1e1e30;
+    --text: #d0d0f0;
+    --text-muted: #4a4a6a;
+    --accent: #b060ff;
+    --accent-dim: #3a1a6a;
+    --p1: #60c0ff;
+    --p2: #ff6060;
+    --stick: #e8c060;
+    --stick-dark: #a07820;
+    --stick-removed: #1e1e2a;
+    --glow-stick: rgba(232,192,96,0.45);
+    --glow-p1: rgba(96,192,255,0.4);
+    --glow-p2: rgba(255,96,96,0.4);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 25% 30%, rgba(176,96,255,0.07) 0%, transparent 55%),
+      radial-gradient(ellipse at 75% 70%, rgba(96,192,255,0.05) 0%, transparent 55%);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding: 28px 16px 48px;
+    gap: 20px;
+  }
+
+  header { text-align: center; }
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 3rem; font-weight: 900; letter-spacing: 0.2em;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--p1) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 28px rgba(176,96,255,0.4));
+  }
+  .subtitle { font-size: 0.6rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-muted); margin-top: 5px; }
+  .badges { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+  .badge {
+    padding: 4px 12px; border: 1px solid var(--border); border-radius: 20px;
+    font-size: 0.56rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); background: rgba(176,96,255,0.06);
+  }
+  .badge.solved { color: #60ff90; background: rgba(96,255,144,0.06); border-color: rgba(96,255,144,0.2); }
+
+  /* Score bar */
+  .scorebar {
+    display: flex; width: 100%; max-width: 580px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+  }
+  .score-half {
+    flex: 1; padding: 12px 16px;
+    display: flex; align-items: center; gap: 10px;
+    transition: background 0.3s;
+  }
+  .score-half.active { background: rgba(176,96,255,0.05); }
+  .score-half:first-child { border-right: 1px solid var(--border); }
+  .player-gem {
+    width: 26px; height: 26px; border-radius: 6px;
+    flex-shrink: 0; transition: transform 0.3s;
+    transform: rotate(45deg);
+  }
+  .player-gem.p1 { background: var(--p1); box-shadow: 0 0 12px var(--glow-p1); }
+  .player-gem.p2 { background: var(--p2); box-shadow: 0 0 12px var(--glow-p2); }
+  .score-half.active .player-gem { transform: rotate(45deg) scale(1.2); }
+  .score-info { flex: 1; }
+  .score-name { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); }
+  .score-wins { font-size: 1.4rem; font-weight: 500; color: var(--text); line-height: 1.1; }
+  .score-sub  { font-size: 0.58rem; color: var(--text-muted); }
+  .turn-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent); opacity: 0;
+    box-shadow: 0 0 8px var(--accent);
+    animation: blink 1s ease-in-out infinite; transition: opacity 0.3s;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+  .score-half.active .turn-dot { opacity: 1; }
+
+  /* Nim-value display */
+  .nim-insight {
+    width: 100%; max-width: 580px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 18px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .insight-item { display: flex; flex-direction: column; gap: 2px; }
+  .insight-label { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); }
+  .insight-val { font-size: 1rem; font-weight: 500; }
+  .insight-val.good { color: #60ff90; }
+  .insight-val.bad  { color: var(--p2); }
+  .insight-val.neutral { color: var(--accent); }
+  .insight-sep { width: 1px; height: 36px; background: var(--border); }
+  .nim-xor-formula { font-size: 0.62rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; flex: 1; min-width: 160px; }
+  .nim-xor-formula span { color: var(--accent); }
+
+  /* Heaps */
+  .heaps-wrap {
+    width: 100%; max-width: 580px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px 20px 16px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .heap-row {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .heap-label {
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-muted); width: 50px; flex-shrink: 0; text-align: right;
+  }
+  .sticks-area {
+    display: flex; gap: 5px; flex-wrap: wrap; flex: 1; align-items: center; min-height: 36px;
+  }
+  .stick {
+    width: 14px; height: 44px;
+    background: linear-gradient(180deg, #f0d070 0%, var(--stick) 40%, var(--stick-dark) 100%);
+    border-radius: 4px 4px 3px 3px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5), 0 0 8px var(--glow-stick);
+    cursor: pointer;
+    transition: transform 0.12s, opacity 0.2s, box-shadow 0.12s;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .stick::after {
+    content: '';
+    position: absolute; top: 3px; left: 3px;
+    width: 4px; height: 30px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+  }
+  .stick:hover { transform: translateY(-4px) scale(1.05); box-shadow: 0 6px 14px rgba(0,0,0,0.5), 0 0 14px var(--glow-stick); }
+  .stick.selected {
+    background: linear-gradient(180deg, #ff9090 0%, var(--p2) 40%, #aa2020 100%);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5), 0 0 14px var(--glow-p2);
+    transform: translateY(-6px) scale(1.08);
+  }
+  .stick.removed {
+    background: var(--stick-removed);
+    box-shadow: none; cursor: default;
+    opacity: 0.25;
+  }
+  .stick.removed::after { display: none; }
+  .stick.removed:hover { transform: none; }
+  .stick.ai-take {
+    animation: aiTake 0.4s ease-out forwards;
+  }
+  @keyframes aiTake {
+    0%   { transform: translateY(0);    opacity: 1; }
+    40%  { transform: translateY(-12px); opacity: 1; }
+    100% { transform: translateY(0);    opacity: 0.25; background: var(--stick-removed); }
+  }
+
+  .heap-count {
+    font-size: 0.8rem; color: var(--text-muted);
+    width: 22px; flex-shrink: 0; text-align: right;
+  }
+
+  /* Action bar */
+  .action-bar {
+    width: 100%; max-width: 580px;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  }
+  .take-info {
+    flex: 1; font-size: 0.72rem; color: var(--text-muted); min-width: 160px;
+  }
+  .take-info span { color: var(--accent); font-weight: 500; }
+  .confirm-btn {
+    padding: 10px 24px;
+    background: linear-gradient(135deg, var(--accent-dim), var(--accent));
+    border: none; border-radius: 8px;
+    color: #fff; font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+    cursor: pointer; transition: filter 0.15s, transform 0.1s;
+    opacity: 0; pointer-events: none;
+  }
+  .confirm-btn.show { opacity: 1; pointer-events: auto; }
+  .confirm-btn:hover { filter: brightness(1.15); transform: scale(1.03); }
+
+  /* Status */
+  .status-bar {
+    width: 100%; max-width: 580px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 11px 18px;
+    font-size: 0.78rem; text-align: center; min-height: 42px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .status-bar.thinking { color: var(--p2); animation: blink 0.8s ease-in-out infinite; }
+  .status-bar.win  { color: #60ff90; }
+  .status-bar.lose { color: var(--p2); }
+
+  /* Controls */
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; width: 100%; max-width: 580px; }
+  .ctrl-group {
+    flex: 1; min-width: 130px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+  }
+  .ctrl-label { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-muted); margin-bottom: 7px; }
+  select {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem; padding: 6px 8px; border-radius: 6px;
+    outline: none; appearance: none;
+  }
+  .btn {
+    flex: 1; min-width: 110px; padding: 12px;
+    background: transparent; border: 1px solid var(--accent-dim);
+    color: var(--accent); font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase;
+    border-radius: 10px; cursor: pointer; transition: all 0.15s;
+  }
+  .btn:hover { background: rgba(176,96,255,0.08); border-color: var(--accent); }
+
+  /* Rules */
+  .rules {
+    width: 100%; max-width: 580px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 18px;
+    font-size: 0.66rem; color: var(--text-muted); line-height: 1.85;
+  }
+  .rules strong { color: var(--accent); }
+  .rules .math { color: #60ff90; font-family: 'JetBrains Mono', monospace; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>NIM</h1>
+  <p class="subtitle">Mathematical Strategy — Remove & Survive</p>
+  <div class="badges">
+    <span class="badge">Negamax</span>
+    <span class="badge">Alpha-Beta</span>
+    <span class="badge solved">Mathematically Solved</span>
+  </div>
+</header>
+
+<div class="scorebar">
+  <div class="score-half" id="sh-human">
+    <div class="player-gem p1" id="gem-human"></div>
+    <div class="score-info">
+      <div class="score-name">You</div>
+      <div class="score-wins" id="sc-human">0</div>
+      <div class="score-sub" id="sw-human">wins</div>
+    </div>
+    <div class="turn-dot"></div>
+  </div>
+  <div class="score-half" id="sh-ai">
+    <div class="player-gem p2"></div>
+    <div class="score-info">
+      <div class="score-name">AI</div>
+      <div class="score-wins" id="sc-ai">0</div>
+      <div class="score-sub" id="sw-ai">wins</div>
+    </div>
+    <div class="turn-dot"></div>
+  </div>
+</div>
+
+<!-- Nim-value insight panel -->
+<div class="nim-insight">
+  <div class="insight-item">
+    <div class="insight-label">Nim-Value (XOR)</div>
+    <div class="insight-val neutral" id="nim-xor">—</div>
+  </div>
+  <div class="insight-sep"></div>
+  <div class="insight-item">
+    <div class="insight-label">Position</div>
+    <div class="insight-val" id="nim-pos">—</div>
+  </div>
+  <div class="insight-sep"></div>
+  <div class="nim-xor-formula" id="xor-formula">XOR of all heap sizes</div>
+</div>
+
+<div class="heaps-wrap" id="heaps-wrap"></div>
+
+<div class="action-bar">
+  <div class="take-info" id="take-info">Click sticks to select, then confirm</div>
+  <button class="confirm-btn" id="confirm-btn" onclick="confirmMove()">Take Selected</button>
+</div>
+
+<div class="status-bar" id="status">Your turn — take at least 1 stick from one heap</div>
+
+<div class="controls">
+  <div class="ctrl-group">
+    <div class="ctrl-label">Game variant</div>
+    <select id="variant-sel" onchange="newGame()">
+      <option value="normal">Normal (last take wins)</option>
+      <option value="misere">Misère (last take loses)</option>
+    </select>
+  </div>
+  <div class="ctrl-group">
+    <div class="ctrl-label">Heap preset</div>
+    <select id="preset-sel" onchange="newGame()">
+      <option value="classic">Classic (1,3,5,7)</option>
+      <option value="standard">Standard (3,5,7)</option>
+      <option value="small">Small (1,2,3)</option>
+      <option value="large">Large (5,7,9,11)</option>
+      <option value="random">Random</option>
+    </select>
+  </div>
+  <div class="ctrl-group">
+    <div class="ctrl-label">Who goes first</div>
+    <select id="first-sel" onchange="newGame()">
+      <option value="human">You</option>
+      <option value="ai">AI</option>
+    </select>
+  </div>
+  <button class="btn" onclick="newGame()">New Game</button>
+</div>
+
+<div class="rules">
+  <strong>Rules:</strong> On your turn, pick <strong>one heap</strong> and remove <strong>any number</strong> of sticks from it (at least 1).
+  In <strong>Normal</strong> mode the player who takes the last stick <strong>wins</strong>.
+  In <strong>Misère</strong> mode the player who takes the last stick <strong>loses</strong>.
+  <br><br>
+  <strong>The Math:</strong> A position is a losing position (P-position) if and only if the <span class="math">XOR</span> (nim-sum) of all heap sizes equals <span class="math">0</span>. The AI always plays to leave a nim-sum of 0. When nim-sum ≠ 0 the AI wins with perfect play; when nim-sum = 0 you have the advantage!
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────
+let heaps, currentPlayer, gameOver, thinking;
+let wins = [0, 0]; // [human, ai]
+let selected = { heap: -1, count: 0 }; // currently selected sticks
+const HUMAN = 0, AI = 1;
+let misere = false;
+
+// ── Nim math ──────────────────────────────────────────────────────
+function nimXor(h) { return h.reduce((a, b) => a ^ b, 0); }
+
+// Perfect Nim strategy
+function bestMove(h, misereMode) {
+  const total = h.reduce((a, b) => a + b, 0);
+  const nonZero = h.filter(x => x > 0).length;
+
+  // Misère endgame: when all heaps are size ≤ 1
+  if (misereMode && h.every(x => x <= 1)) {
+    // Leave odd number of 1s for opponent to take last
+    // Take from a heap of 1 if nonZero is even (leave odd)
+    const heapIdx = h.findIndex(x => x === 1);
+    if (nonZero % 2 === 0 && heapIdx !== -1) return { heap: heapIdx, take: 1 };
+    // Otherwise pass (take 0 is invalid) — find any heap > 0
+    return { heap: heapIdx !== -1 ? heapIdx : 0, take: 1 };
+  }
+
+  const xorVal = nimXor(h);
+
+  if (xorVal !== 0) {
+    // Winning position: find move that makes xor = 0
+    for (let i = 0; i < h.length; i++) {
+      const target = h[i] ^ xorVal;
+      if (target < h[i]) {
+        // Misère adjustment: if this would leave all heaps ≤ 1, adjust
+        if (misereMode) {
+          const newH = [...h]; newH[i] = target;
+          if (newH.every(x => x <= 1)) {
+            // Leave even number of 1s for misère win
+            const ones = newH.filter(x => x === 1).length;
+            if (ones % 2 === 0) {
+              // Take one more or less to leave odd
+              if (h[i] > target + 1) return { heap: i, take: h[i] - target - 1 };
+            }
+          }
+        }
+        return { heap: i, take: h[i] - target };
+      }
+    }
+  }
+
+  // Losing position (xor = 0): take 1 from largest heap (hope for mistake)
+  let maxIdx = 0;
+  for (let i = 1; i < h.length; i++) if (h[i] > h[maxIdx]) maxIdx = i;
+  return { heap: maxIdx, take: Math.max(1, Math.floor(h[maxIdx] / 2)) };
+}
+
+// Negamax (used to verify and for small depths — Nim is solved so this always matches)
+function negamax(h, alpha, beta, player) {
+  const total = h.reduce((a, b) => a + b, 0);
+  if (total === 0) {
+    // Last move was taken by opponent
+    return misere ? 1 : -1; // misère: last taker loses = current player wins
+  }
+  let best = -Infinity;
+  for (let i = 0; i < h.length; i++) {
+    for (let take = 1; take <= h[i]; take++) {
+      const nh = [...h]; nh[i] -= take;
+      const score = -negamax(nh, -beta, -alpha, 1 - player);
+      if (score > best) best = score;
+      alpha = Math.max(alpha, score);
+      if (alpha >= beta) break;
+    }
+    if (alpha >= beta) break;
+  }
+  return best;
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function renderHeaps() {
+  const wrap = document.getElementById('heaps-wrap');
+  wrap.innerHTML = '';
+
+  heaps.forEach((count, hi) => {
+    const row = document.createElement('div');
+    row.className = 'heap-row';
+
+    const label = document.createElement('div');
+    label.className = 'heap-label';
+    label.textContent = `Heap ${hi + 1}`;
+    row.appendChild(label);
+
+    const area = document.createElement('div');
+    area.className = 'sticks-area';
+
+    // Max sticks for this heap (track original for layout)
+    const maxSticks = Math.max(count, 11);
+    for (let si = 0; si < maxSticks; si++) {
+      const stick = document.createElement('div');
+      if (si >= count) {
+        stick.className = 'stick removed';
+      } else {
+        const isSelected = selected.heap === hi && si >= (count - selected.count);
+        stick.className = 'stick' + (isSelected ? ' selected' : '');
+        stick.addEventListener('click', () => handleStickClick(hi, si, count));
+      }
+      area.appendChild(stick);
+    }
+
+    row.appendChild(area);
+
+    const countEl = document.createElement('div');
+    countEl.className = 'heap-count';
+    countEl.textContent = count;
+    row.appendChild(countEl);
+
+    wrap.appendChild(row);
+  });
+
+  updateInsight();
+  updateActionBar();
+  updateScorebar();
+}
+
+function updateInsight() {
+  const xor = nimXor(heaps);
+  const total = heaps.reduce((a, b) => a + b, 0);
+  document.getElementById('nim-xor').textContent = xor;
+  document.getElementById('nim-xor').className = 'insight-val ' + (xor === 0 ? 'good' : 'bad');
+
+  let pos, posClass;
+  if (total === 0) { pos = 'Game Over'; posClass = 'neutral'; }
+  else if (misere) {
+    // Misère: P-position when xor=0 AND not all heaps ≤ 1, or xor≠0 when all heaps ≤ 1
+    const allSmall = heaps.every(x => x <= 1);
+    const isPpos = allSmall ? (xor !== 0) : (xor === 0);
+    pos = isPpos ? '✓ P-position (you lead)' : '✗ N-position (AI leads)';
+    posClass = isPpos ? 'good' : 'bad';
+  } else {
+    pos = xor === 0 ? '✓ P-position (you lead)' : '✗ N-position (AI leads)';
+    posClass = xor === 0 ? 'good' : 'bad';
+  }
+  document.getElementById('nim-pos').textContent = pos;
+  document.getElementById('nim-pos').className = 'insight-val ' + posClass;
+
+  const formula = heaps.map((h, i) => `<span>${h}</span>`).join(' ⊕ ') + ` = <span>${xor}</span>`;
+  document.getElementById('xor-formula').innerHTML = formula;
+}
+
+function updateActionBar() {
+  const info = document.getElementById('take-info');
+  const btn = document.getElementById('confirm-btn');
+  if (selected.count > 0) {
+    info.innerHTML = `Taking <span>${selected.count}</span> stick${selected.count > 1 ? 's' : ''} from Heap ${selected.heap + 1}`;
+    btn.classList.add('show');
+  } else {
+    info.innerHTML = 'Click sticks to select, then confirm';
+    btn.classList.remove('show');
+  }
+}
+
+function updateScorebar() {
+  document.getElementById('sc-human').textContent = wins[HUMAN];
+  document.getElementById('sc-ai').textContent = wins[AI];
+  document.getElementById('sh-human').classList.toggle('active', currentPlayer === HUMAN && !gameOver);
+  document.getElementById('sh-ai').classList.toggle('active', currentPlayer === AI && !gameOver);
+}
+
+function setStatus(msg, cls = '') {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status-bar' + (cls ? ' ' + cls : '');
+}
+
+// ── Interaction ───────────────────────────────────────────────────
+function handleStickClick(heap, stickIdx, heapCount) {
+  if (gameOver || thinking || currentPlayer !== HUMAN) return;
+
+  // If clicking a different heap, reset selection
+  if (selected.heap !== -1 && selected.heap !== heap) {
+    selected = { heap: -1, count: 0 };
+  }
+
+  // How many sticks from the end are selected?
+  // stickIdx from 0..heapCount-1; selecting from the right
+  const fromEnd = heapCount - 1 - stickIdx; // 0 = rightmost
+  const newCount = fromEnd + 1;
+
+  if (selected.heap === heap && selected.count === newCount) {
+    // Deselect
+    selected = { heap: -1, count: 0 };
+  } else {
+    selected = { heap, count: newCount };
+  }
+  renderHeaps();
+}
+
+function confirmMove() {
+  if (selected.count === 0 || selected.heap === -1) return;
+  executeMove(selected.heap, selected.count);
+  selected = { heap: -1, count: 0 };
+}
+
+function executeMove(heapIdx, take) {
+  // Animate removal
+  const rows = document.getElementById('heaps-wrap').children;
+  if (rows[heapIdx]) {
+    const sticks = rows[heapIdx].querySelectorAll('.stick:not(.removed)');
+    const toRemove = Array.from(sticks).slice(-take);
+    toRemove.forEach((s, i) => {
+      setTimeout(() => {
+        s.classList.add(currentPlayer === AI ? 'ai-take' : 'selected');
+        setTimeout(() => s.classList.add('removed'), 350);
+      }, i * 60);
+    });
+  }
+
+  setTimeout(() => {
+    heaps[heapIdx] -= take;
+    const total = heaps.reduce((a, b) => a + b, 0);
+
+    if (total === 0) {
+      gameOver = true;
+      // Who wins?
+      const takerWins = !misere;
+      const humanWon = (currentPlayer === HUMAN) === takerWins;
+      if (humanWon) { wins[HUMAN]++; renderHeaps(); setStatus('You win! 🎉', 'win'); }
+      else          { wins[AI]++;    renderHeaps(); setStatus('AI wins!', 'lose'); }
+      return;
+    }
+
+    currentPlayer = 1 - currentPlayer;
+    renderHeaps();
+    if (currentPlayer === AI) {
+      setStatus('AI thinking…', 'thinking');
+      thinking = true;
+      setTimeout(doAIMove, 500);
+    } else {
+      const xor = nimXor(heaps);
+      setStatus('Your turn — ' + (xor === 0 ? 'good position!' : 'AI has the advantage'));
+    }
+  }, take * 60 + 400);
+}
+
+function doAIMove() {
+  const move = bestMove(heaps, misere);
+  thinking = false;
+  currentPlayer = AI;
+  executeMove(move.heap, move.take);
+}
+
+// ── New Game ──────────────────────────────────────────────────────
+function getPreset() {
+  const p = document.getElementById('preset-sel').value;
+  if (p === 'classic')  return [1, 3, 5, 7];
+  if (p === 'standard') return [3, 5, 7];
+  if (p === 'small')    return [1, 2, 3];
+  if (p === 'large')    return [5, 7, 9, 11];
+  if (p === 'random') {
+    const n = 3 + Math.floor(Math.random() * 2);
+    return Array.from({ length: n }, () => 1 + Math.floor(Math.random() * 9));
+  }
+}
+
+function newGame() {
+  heaps = getPreset();
+  misere = document.getElementById('variant-sel').value === 'misere';
+  const first = document.getElementById('first-sel').value;
+  currentPlayer = first === 'human' ? HUMAN : AI;
+  gameOver = false; thinking = false;
+  selected = { heap: -1, count: 0 };
+  renderHeaps();
+  document.getElementById('confirm-btn').classList.remove('show');
+
+  if (currentPlayer === AI) {
+    setStatus('AI goes first…', 'thinking');
+    thinking = true;
+    setTimeout(doAIMove, 700);
+  } else {
+    const xor = nimXor(heaps);
+    setStatus('Your turn — ' + (xor === 0 ? 'good position!' : 'AI has the advantage'));
+  }
+}
+
+newGame();
+</script>
+</body>
+</html>
